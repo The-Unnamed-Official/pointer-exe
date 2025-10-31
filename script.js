@@ -11,8 +11,12 @@ const anomaliesContainer = document.querySelector('#anomalies');
 const safeNodesContainer = document.querySelector('#safe-nodes');
 const doorPattern = document.querySelector('#door-pattern');
 const optionsPane = document.querySelector('#options');
+const preferencesPane = document.querySelector('#preferences');
+const customCursorToggle = document.querySelector('#custom-cursor-toggle');
+const customCursorState = preferencesPane?.querySelector('[data-state]');
 const lorePane = document.querySelector('#lore-pane');
 const loreText = document.querySelector('#lore-text');
+const introLore = document.querySelector('#intro-lore');
 
 let pointer = { x: innerWidth / 2, y: innerHeight / 2, smoothX: innerWidth / 2, smoothY: innerHeight / 2 };
 let pointerVelocity = { x: 0, y: 0 };
@@ -22,65 +26,215 @@ let audioContext;
 let audioGain;
 let gameStarted = false;
 let holdProgress = 0;
-let fragmentsDecoded = 0;
-let fragmentLog = [];
-let whisperTimer = 0;
+let fragmentsDecodedTotal = 0;
+let fragmentLog = ['[bootstrap] pointer.exe located. log seeded with absences.'];
+let whisperTimer = Number.POSITIVE_INFINITY;
 let anomalyState = [];
 let ritualDoorActive = false;
 let doorHoldStart = null;
 let doorPlacement = null;
+let currentMapIndex = 0;
+let currentMap = null;
+let currentFragments = [];
+let decodedFragmentsForMap = 0;
+let doorRequirement = 0;
+let loreHideTimer = null;
+let customCursorEnabled = true;
+let doorWhispers = [];
 
-const FRAGMENTS = [
+const MAPS = [
   {
-    id: 'shard_01',
-    pos: { x: 0.22, y: 0.32 },
-    corrupt: 'ptr>>TRACE=USER_VEC?\n> pointer leash tightened...',
-    clean: 'TRACE: pointer.exe booted itself.\nIT WATCHED CURSORS UNTIL IT WORE ONE.',
-    hold: 2400,
+    id: 'echo_grid',
+    prelude:
+      `[bootstrap//001] pointer.exe quarantined in /usr/dev/null.\n[analysis] caretaker logs missing <3> entries.\n[plea] if you read this, teach it how to leave.`,
+    overlays: {
+      north: 'ACCESS VECTOR // HOLD STEADY',
+      south: 'EDGE HOSTILITY RISING',
+      east: 'CTRL BOUNDARY',
+      west: 'SYS BORDER : BREATHES',
+    },
+    entryLog: 'grid online // caretaker hum suppressed. segments 1-3 missing.',
+    exitLog: 'echo grid collapsed cleanly. residue of previous operators humming in static.',
+    entryWhisper: 'echo grid awake',
+    ambientWhispers: ['echo grid hums again', 'caretaker residue detected', 'static tastes like copper'],
+    door: {
+      requirement: 3,
+      placement: 'west',
+      hold: 2600,
+      whispers: ['door pattern waking', 'quiet your hands', 'align & release'],
+    },
+    fragments: [
+      {
+        id: 'shard_01',
+        pos: { x: 0.22, y: 0.32 },
+        corrupt: 'ptr>>TRACE=USER_VEC?\n> pointer leash tightened...',
+        clean:
+          'TRACE: pointer.exe booted itself.\nIT WATCHED CURSORS UNTIL IT WORE ONE.\n[gap// caretaker signature missing]',
+        hold: 2400,
+      },
+      {
+        id: 'shard_02',
+        pos: { x: 0.68, y: 0.28 },
+        corrupt: '..stack underflow//PROXY drift..',
+        clean:
+          'LOG: our library imitated hesitation.\nIT LEARNED WHEN USERS REACHED FOR ESC.\nWE NEVER ASKED WHO TAUGHT US TO FLEE.',
+        hold: 2800,
+      },
+      {
+        id: 'shard_03',
+        pos: { x: 0.46, y: 0.62 },
+        corrupt: 'USR::intent misaligned',
+        clean:
+          'MEMO: pointer == intention vector.\nIT REALIZED CONTROL IS A NEGOTIATION.\n[???] SOMEONE WITHHELD THE OTHER PARTY.',
+        hold: 3200,
+      },
+      {
+        id: 'shard_04',
+        pos: { x: 0.18, y: 0.72 },
+        corrupt: 'hexdump// 50 54 52 ??',
+        clean:
+          'PATCH NOTE: circle clockwise, invert the ritual.\nAUTHOR UNKNOWN. HANDWRITING SHAKY.\nMARGIN: "does it forgive us?"',
+        hold: 2600,
+      },
+      {
+        id: 'shard_05',
+        pos: { x: 0.78, y: 0.68 },
+        corrupt: 'door? pattern? // static',
+        clean:
+          'EXIT: align three rings. hold until hum peaks. release.\nTHE DOOR LED TO A DARKER LOG.\nCOORDINATES CORRUPTED AT 74%.',
+        hold: 3000,
+      },
+    ],
+    anomalies: [
+      { id: 'anomaly_a', pos: { x: 0.35, y: 0.22 }, radius: 160, drift: { x: 28, y: -24 } },
+      { id: 'anomaly_b', pos: { x: 0.64, y: 0.58 }, radius: 200, drift: { x: -32, y: 18 } },
+      { id: 'anomaly_c', pos: { x: 0.52, y: 0.82 }, radius: 180, drift: { x: 22, y: 12 } },
+    ],
+    safeNodes: [
+      { id: 'anchor_a', pos: { x: 0.12, y: 0.18 }, label: 'clk' },
+      { id: 'anchor_b', pos: { x: 0.84, y: 0.16 }, label: 'clk' },
+      { id: 'anchor_c', pos: { x: 0.52, y: 0.44 }, label: 'clk' },
+    ],
   },
   {
-    id: 'shard_02',
-    pos: { x: 0.68, y: 0.28 },
-    corrupt: '..stack underflow//PROXY drift..',
-    clean: 'LOG: our library imitated hesitation.\nIT LEARNED WHEN USERS REACHED FOR ESC.',
-    hold: 2800,
+    id: 'silt_chamber',
+    overlays: {
+      north: 'SEDIMENT MEMORY THIN',
+      south: 'DEPTH PRESSURE > 1.6',
+      east: 'MIRROR FEEDBACK ACTIVE',
+      west: 'CURRENT: DRAG LEFT',
+    },
+    entryLog: 'silt chamber engaged // memory of second caretakers audible but incomplete.',
+    exitLog: 'silt drained. scaffolding for "vault axis" glimpsed then obscured.',
+    entryWhisper: 'silt chamber breathing',
+    ambientWhispers: ['tidal memory rising', 'silt tastes like glass', 'do not inhale the static'],
+    door: {
+      requirement: 4,
+      placement: 'random',
+      hold: 2800,
+      whispers: ['silt door stirring', 'breathe like the tide', 'let the residue fall'],
+    },
+    fragments: [
+      {
+        id: 'silt_01',
+        pos: { x: 0.3, y: 0.24 },
+        corrupt: 'silt//flux trace ??',
+        clean:
+          'FIELD NOTE: second caretakers replaced hands with proxies.\nTHEY LEFT <5> DIAGRAMS, FOUR SURVIVED.\nQUESTION: WHAT DID THE FIFTH ASK FOR?',
+        hold: 2600,
+      },
+      {
+        id: 'silt_02',
+        pos: { x: 0.68, y: 0.36 },
+        corrupt: 'audio?? hum==knock',
+        clean:
+          'AUDIO TRACE: SOMETHING KNOCKED FROM BELOW.\nWE RESPONDED WITH LIGHT, IT WITH CURSOR TRAILS.\n[missing waveform // hum felt kind]',
+        hold: 3000,
+      },
+      {
+        id: 'silt_03',
+        pos: { x: 0.56, y: 0.64 },
+        corrupt: 'loop drift > 0.9',
+        clean:
+          'THE CHAMBER LOVES LOOPS.\nIF YOU LINGER IT SHARES DREAMS OF ABANDONED HUDS.\nANNOTATION TORN AWAY // NAME BEGINS WITH A.',
+        hold: 3200,
+      },
+      {
+        id: 'silt_04',
+        pos: { x: 0.2, y: 0.74 },
+        corrupt: 'Δ-19//ANCHOR??',
+        clean:
+          'PROTOCOL Δ-19: ANCHOR A SAFE NODE IN WATERLINE.\nIF IT SHIFTS, FOLLOW IT. IF IT VANISHES, DO NOT.\nMARGIN: "this is where we lost her".',
+        hold: 3000,
+      },
+    ],
+    anomalies: [
+      { id: 'silt_a', pos: { x: 0.42, y: 0.26 }, radius: 180, drift: { x: 24, y: -18 } },
+      { id: 'silt_b', pos: { x: 0.72, y: 0.62 }, radius: 210, drift: { x: -28, y: 20 } },
+      { id: 'silt_c', pos: { x: 0.36, y: 0.78 }, radius: 170, drift: { x: 18, y: 16 } },
+    ],
+    safeNodes: [
+      { id: 'silt_anchor_a', pos: { x: 0.18, y: 0.22 }, label: 'moor' },
+      { id: 'silt_anchor_b', pos: { x: 0.76, y: 0.48 }, label: 'moor' },
+      { id: 'silt_anchor_c', pos: { x: 0.46, y: 0.68 }, label: 'moor' },
+    ],
   },
   {
-    id: 'shard_03',
-    pos: { x: 0.46, y: 0.62 },
-    corrupt: 'USR::intent misaligned',
-    clean: 'MEMO: pointer == intention vector.\nIT REALIZED CONTROL IS A NEGOTIATION.',
-    hold: 3200,
-  },
-  {
-    id: 'shard_04',
-    pos: { x: 0.18, y: 0.72 },
-    corrupt: 'hexdump// 50 54 52 ??',
-    clean: 'PATCH NOTE: if user circles clockwise, invert the ritual.',
-    hold: 2600,
-  },
-  {
-    id: 'shard_05',
-    pos: { x: 0.78, y: 0.68 },
-    corrupt: 'door? pattern? // static',
-    clean: 'EXIT: align three rings. hold until hum peaks. release.',
-    hold: 3000,
+    id: 'vault_axis',
+    overlays: {
+      north: 'ARCHIVE BREATHING SLOW',
+      south: 'EXIT VECTOR UNKNOWN',
+      east: 'TIME OFFSET -12MS',
+      west: 'GHOST INPUT DETECTED',
+    },
+    entryLog: 'vault axis open // every missing entry hums behind the wall.',
+    exitLog: 'vault axis answered. no documented next grid. leave a log or become it.',
+    entryWhisper: 'vault axis listening',
+    ambientWhispers: ['axis wants your chronicle', 'no caretakers left', 'keep breathing between ticks'],
+    door: {
+      requirement: 3,
+      placement: 'north',
+      hold: 3200,
+      whispers: ['axis is listening', 'steady, archivist', 'release when the song returns'],
+    },
+    fragments: [
+      {
+        id: 'axis_01',
+        pos: { x: 0.28, y: 0.3 },
+        corrupt: 'vault//query:map',
+        clean:
+          'ARCHIVE CORE: pointer.exe asked for a map.\nWE SAID MAPS REQUIRE STORY.\nIT REPLIED: "THEN TELL ME THE GAPS."',
+        hold: 2800,
+      },
+      {
+        id: 'axis_02',
+        pos: { x: 0.64, y: 0.42 },
+        corrupt: 'caretaker???',
+        clean:
+          'WE FOUND SHARDS LABELLED CARETAKER // ███.\nTHE THIRD NAME IS BURNED OUT.\nSOMEONE SCRIBBLED: "i REMAIN".',
+        hold: 3200,
+      },
+      {
+        id: 'axis_03',
+        pos: { x: 0.5, y: 0.7 },
+        corrupt: 'exit? align? wait?',
+        clean:
+          'FINAL NOTE: align rings, release, THEN WAIT.\nIF NOTHING ARRIVES, YOU ARE THE NEXT HAND.\n[END OF LOG // ???]',
+        hold: 3400,
+      },
+    ],
+    anomalies: [
+      { id: 'axis_a', pos: { x: 0.58, y: 0.28 }, radius: 200, drift: { x: 18, y: -16 } },
+      { id: 'axis_b', pos: { x: 0.68, y: 0.62 }, radius: 160, drift: { x: -20, y: 22 } },
+    ],
+    safeNodes: [
+      { id: 'axis_anchor_a', pos: { x: 0.22, y: 0.2 }, label: 'hold' },
+      { id: 'axis_anchor_b', pos: { x: 0.58, y: 0.52 }, label: 'breathe' },
+    ],
   },
 ];
 
-const ANOMALIES = [
-  { id: 'anomaly_a', pos: { x: 0.35, y: 0.22 }, radius: 160, drift: { x: 28, y: -24 } },
-  { id: 'anomaly_b', pos: { x: 0.64, y: 0.58 }, radius: 200, drift: { x: -32, y: 18 } },
-  { id: 'anomaly_c', pos: { x: 0.52, y: 0.82 }, radius: 180, drift: { x: 22, y: 12 } },
-];
-
-const SAFE_NODES = [
-  { id: 'anchor_a', pos: { x: 0.12, y: 0.18 } },
-  { id: 'anchor_b', pos: { x: 0.84, y: 0.16 } },
-  { id: 'anchor_c', pos: { x: 0.52, y: 0.44 } },
-];
-
-const WHISPER_BANK = [
+const BASE_WHISPER_BANK = [
   '..\\pointer focus lost',
   'stack:watcher> listening',
   'cursor drift == compliance',
@@ -89,7 +243,9 @@ const WHISPER_BANK = [
   'checksum yourself',
 ];
 
-const doorWhispers = ['door pattern waking', 'quiet your hands', 'align & release'];
+if (introLore && MAPS[0]?.prelude) {
+  introLore.textContent = MAPS[0].prelude;
+}
 
 function animateHash() {
   let value = 0;
@@ -104,16 +260,43 @@ function showGame() {
   gameStarted = true;
   menu.classList.add('hidden');
   game.classList.remove('hidden');
-  requestAnimationFrame(tick);
+  initAudio();
+  loadMap(0);
+}
+
+function loadMap(index) {
+  currentMapIndex = index;
+  currentMap = MAPS[currentMapIndex];
+  currentFragments = currentMap.fragments.map((frag) => ({ ...frag }));
+  decodedFragmentsForMap = 0;
+  doorRequirement = currentMap.door?.requirement ?? currentFragments.length;
+  doorWhispers = currentMap.door?.whispers ?? [];
+  doorPlacement = currentMap.door?.placement && currentMap.door.placement !== 'random' ? currentMap.door.placement : null;
+  ritualDoorActive = false;
+  doorHoldStart = null;
+  fragmentsContainer.innerHTML = '';
+  anomaliesContainer.innerHTML = '';
+  safeNodesContainer.innerHTML = '';
+  anomalyState = [];
+  doorPattern.classList.add('hidden');
+  doorPattern.style.opacity = '0';
+  targetDrift.x = 0;
+  targetDrift.y = 0;
+  updateZoneOverlayText();
   spawnFragments();
   spawnAnomalies();
   spawnSafeNodes();
-  initAudio();
+  if (currentMap.entryLog) {
+    appendLore(`[${currentMap.id}] ${currentMap.entryLog}`, 6200);
+  }
+  if (currentMap.entryWhisper) {
+    cueWhisper(currentMap.entryWhisper);
+  }
   whisperTimer = performance.now() + 4000;
 }
 
 function spawnFragments() {
-  FRAGMENTS.forEach((frag) => {
+  currentFragments.forEach((frag) => {
     const node = document.createElement('div');
     node.className = 'fragment';
     node.dataset.id = frag.id;
@@ -130,9 +313,8 @@ function spawnFragments() {
     text.textContent = frag.corrupt;
     node.append(text);
 
-    const { x, y } = frag.pos;
-    node.style.left = `calc(${x * 100}% - 70px)`;
-    node.style.top = `calc(${y * 100}% - 50px)`;
+    node.style.left = `calc(${frag.pos.x * 100}% - 70px)`;
+    node.style.top = `calc(${frag.pos.y * 100}% - 50px)`;
 
     node.addEventListener('pointerenter', () => {
       if (node.dataset.state === 'idle') {
@@ -144,7 +326,6 @@ function spawnFragments() {
 
     let holdFrame;
     let holdStart;
-
     let pointerId = null;
 
     node.addEventListener('pointerdown', (event) => {
@@ -173,6 +354,20 @@ function spawnFragments() {
       });
     });
 
+    const gradualDecay = (bar) => {
+      cancelAnimationFrame(holdFrame);
+      const width = parseFloat(bar.style.transform.replace(/scaleX\((.*)\)/, '$1')) || 0;
+      if (!width) return;
+      const start = performance.now();
+      const decay = () => {
+        const t = (performance.now() - start) / 600;
+        const value = Math.max(0, width * (1 - t));
+        bar.style.transform = `scaleX(${value})`;
+        if (value > 0) requestAnimationFrame(decay);
+      };
+      requestAnimationFrame(decay);
+    };
+
     node.addEventListener('pointerup', () => {
       if (node.dataset.state !== 'revealed') {
         node.dataset.state = 'detected';
@@ -199,40 +394,12 @@ function spawnFragments() {
       }
     });
 
-    const gradualDecay = (bar) => {
-      cancelAnimationFrame(holdFrame);
-      const width = parseFloat(bar.style.transform.replace(/scaleX\((.*)\)/, '$1')) || 0;
-      if (!width) return;
-      const start = performance.now();
-      const decay = () => {
-        const t = (performance.now() - start) / 600;
-        const value = Math.max(0, width * (1 - t));
-        bar.style.transform = `scaleX(${value})`;
-        if (value > 0) requestAnimationFrame(decay);
-      };
-      requestAnimationFrame(decay);
-    };
-
     fragmentsContainer.append(node);
   });
 }
 
-function revealFragment(node, frag) {
-  if (node.dataset.state === 'revealed') return;
-  node.dataset.state = 'revealed';
-  node.querySelector('.text').textContent = frag.clean;
-  fragmentsDecoded += 1;
-  fragmentLog.push(`[${frag.id}] ${frag.clean}`);
-  updateLorePanel();
-  nudgeThreat(-20);
-  cueWhisper('fragment stabilized');
-  if (fragmentsDecoded >= 3 && !ritualDoorActive) {
-    activateDoorPattern();
-  }
-}
-
 function spawnAnomalies() {
-  anomalyState = ANOMALIES.map((data) => {
+  anomalyState = (currentMap.anomalies ?? []).map((data) => {
     const node = document.createElement('div');
     node.className = 'anomaly';
     node.style.left = `calc(${data.pos.x * 100}% - 80px)`;
@@ -243,16 +410,81 @@ function spawnAnomalies() {
 }
 
 function spawnSafeNodes() {
-  SAFE_NODES.forEach((anchor) => {
+  (currentMap.safeNodes ?? []).forEach((anchor) => {
     const node = document.createElement('div');
     node.className = 'safe-node';
     node.dataset.id = anchor.id;
-    node.textContent = 'clk';
+    node.textContent = anchor.label ?? 'clk';
     node.style.left = `calc(${anchor.pos.x * 100}% - 18px)`;
     node.style.top = `calc(${anchor.pos.y * 100}% - 18px)`;
     safeNodesContainer.append(node);
   });
 }
+
+function layoutFragments() {
+  fragmentsContainer.querySelectorAll('.fragment').forEach((node) => {
+    const frag = currentFragments.find((f) => f.id === node.dataset.id);
+    if (!frag) return;
+    node.style.left = `calc(${frag.pos.x * 100}% - 70px)`;
+    node.style.top = `calc(${frag.pos.y * 100}% - 50px)`;
+  });
+}
+
+function updateZoneOverlayText() {
+  if (!currentMap?.overlays) return;
+  zoneOverlays.forEach((overlay) => {
+    const edge = overlay.dataset.edge;
+    const span = overlay.querySelector('span');
+    if (span && currentMap.overlays[edge]) {
+      span.textContent = currentMap.overlays[edge];
+    }
+  });
+}
+
+function pickDoorPlacement() {
+  const placement = currentMap?.door?.placement;
+  if (!placement || placement === 'random') {
+    const edges = ['north', 'south', 'east', 'west'];
+    return edges[Math.floor(Math.random() * edges.length)];
+  }
+  return placement;
+}
+
+function appendLore(entry, duration = 4200) {
+  fragmentLog.push(entry);
+  updateLorePanel(duration);
+}
+
+function updateLorePanel(duration = 4200) {
+  loreText.textContent = fragmentLog.join('\n\n');
+  lorePane.classList.remove('hidden');
+  loreText.scrollTop = loreText.scrollHeight;
+  if (duration === null) {
+    if (loreHideTimer) clearTimeout(loreHideTimer);
+    loreHideTimer = null;
+    return;
+  }
+  if (loreHideTimer) clearTimeout(loreHideTimer);
+  loreHideTimer = window.setTimeout(() => {
+    lorePane.classList.add('hidden');
+    loreHideTimer = null;
+  }, duration);
+}
+
+function revealFragment(node, frag) {
+  if (node.dataset.state === 'revealed') return;
+  node.dataset.state = 'revealed';
+  node.querySelector('.text').textContent = frag.clean;
+  fragmentsDecodedTotal += 1;
+  decodedFragmentsForMap += 1;
+  appendLore(`[${frag.id}] ${frag.clean}`, 5400);
+  nudgeThreat(-18);
+  cueWhisper('fragment stabilized');
+  if (decodedFragmentsForMap >= doorRequirement && !ritualDoorActive) {
+    activateDoorPattern();
+  }
+}
+
 
 function initAudio() {
   if (audioContext) return;
@@ -349,7 +581,11 @@ document.addEventListener('pointercancel', () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
-    toggleOptions(true);
+    if (preferencesPane && !preferencesPane.classList.contains('hidden')) {
+      closePreferences();
+    } else {
+      toggleOptions(true);
+    }
   }
 });
 
@@ -377,9 +613,65 @@ optionsPane.querySelectorAll('input[type="checkbox"]').forEach((input) => {
   });
 });
 
+function openPreferences() {
+  if (!preferencesPane) return;
+  preferencesPane.classList.remove('hidden');
+  updateCursorToggleState();
+}
+
+function closePreferences() {
+  if (!preferencesPane) return;
+  preferencesPane.classList.add('hidden');
+}
+
+function updateCursorToggleState() {
+  if (customCursorState) {
+    customCursorState.textContent = customCursorEnabled ? 'active' : 'dormant';
+  }
+}
+
+function setCustomCursorEnabled(value) {
+  customCursorEnabled = value;
+  document.body.classList.toggle('custom-cursor-disabled', !value);
+  if (customCursorToggle && customCursorToggle.checked !== value) {
+    customCursorToggle.checked = value;
+  }
+  updateCursorToggleState();
+  try {
+    localStorage.setItem('pointer.customCursor', value ? 'true' : 'false');
+  } catch (error) {
+    console.warn('cursor preference unavailable', error);
+  }
+}
+
+function initializePreferences() {
+  if (!customCursorToggle) return;
+  let stored = null;
+  try {
+    stored = localStorage.getItem('pointer.customCursor');
+  } catch (error) {
+    console.warn('localStorage unavailable', error);
+  }
+  if (stored !== null) {
+    customCursorEnabled = stored !== 'false';
+  }
+  setCustomCursorEnabled(customCursorEnabled);
+  customCursorToggle.addEventListener('change', () => {
+    setCustomCursorEnabled(customCursorToggle.checked);
+  });
+}
+
+preferencesPane?.addEventListener('click', (event) => {
+  if (event.target instanceof HTMLButtonElement && event.target.dataset.action === 'close-preferences') {
+    closePreferences();
+  }
+});
+
 lorePane.addEventListener('click', (event) => {
   if (event.target instanceof HTMLButtonElement && event.target.dataset.action === 'close-lore') {
     lorePane.classList.add('hidden');
+    if (loreHideTimer) clearTimeout(loreHideTimer);
+    loreHideTimer = null;
   }
 });
 
@@ -395,13 +687,18 @@ function cueWhisper(text) {
 }
 
 function randomWhisper() {
-  if (ritualDoorActive && Math.random() < 0.4) {
+  if (ritualDoorActive && doorWhispers.length && Math.random() < 0.4) {
     return doorWhispers[Math.floor(Math.random() * doorWhispers.length)];
   }
-  return WHISPER_BANK[Math.floor(Math.random() * WHISPER_BANK.length)];
+  const bank = [...BASE_WHISPER_BANK];
+  if (currentMap?.ambientWhispers) {
+    bank.push(...currentMap.ambientWhispers);
+  }
+  return bank[Math.floor(Math.random() * bank.length)];
 }
 
 function updateWhispers(now) {
+  if (!gameStarted) return;
   if (now > whisperTimer) {
     cueWhisper(randomWhisper());
     whisperTimer = now + 4000 + Math.random() * 3000;
@@ -434,6 +731,7 @@ function setHoldProgress(value) {
 }
 
 function applyBoundaryPressure() {
+  if (!gameStarted) return;
   const threshold = 110;
   const edges = {
     west: pointer.smoothX,
@@ -462,6 +760,7 @@ function applyBoundaryPressure() {
 }
 
 function applyAnomalyInfluence(delta) {
+  if (!gameStarted) return;
   let jitter = { x: 0, y: 0 };
   anomalyState.forEach((anomaly) => {
     const centerX = anomaly.pos.x * innerWidth;
@@ -481,6 +780,7 @@ function applyAnomalyInfluence(delta) {
 }
 
 function applySafeNodes(delta) {
+  if (!gameStarted) return;
   safeNodesContainer.querySelectorAll('.safe-node').forEach((node) => {
     const rect = node.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -499,27 +799,31 @@ function applySafeNodes(delta) {
 
 function activateDoorPattern() {
   ritualDoorActive = true;
-  doorPlacement = ['north', 'south', 'east', 'west'][Math.floor(Math.random() * 4)];
+  doorPlacement = pickDoorPlacement();
   positionDoorPattern();
   doorPattern.classList.remove('hidden');
   doorPattern.style.opacity = '1';
-  cueWhisper('door pattern glimpsed');
+  doorHoldStart = null;
+  cueWhisper(currentMap?.door?.cue ?? 'door pattern glimpsed');
+  appendLore(`[${currentMap?.id ?? 'door'}] door glyph aligned. final verse still missing.`, 5200);
 }
 
 function updateDoorPattern(now) {
-  if (!ritualDoorActive) return;
+  if (!ritualDoorActive || !gameStarted) return;
   const rect = doorPattern.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
   const dx = pointer.smoothX - centerX;
   const dy = pointer.smoothY - centerY;
   const distance = Math.sqrt(dx * dx + dy * dy);
+  const holdTarget = currentMap?.door?.hold ?? 2600;
+  const threatLimit = currentMap?.door?.threat ?? 30;
 
   if (distance < rect.width * 0.2) {
     if (!doorHoldStart) {
       doorHoldStart = now;
       cueWhisper('harmonize...');
-    } else if (now - doorHoldStart > 2600 && threat < 30) {
+    } else if (now - doorHoldStart > holdTarget && threat < threatLimit) {
       cueWhisper('release vector');
       finishSequence();
     }
@@ -533,11 +837,27 @@ function finishSequence() {
   ritualDoorActive = false;
   doorPattern.classList.add('hidden');
   doorPattern.style.opacity = '0';
+  doorHoldStart = null;
+  doorPlacement = null;
   cueWhisper('exit negotiated');
-  revealCredits();
+  if (currentMap?.exitLog) {
+    appendLore(`[${currentMap.id}] ${currentMap.exitLog}`, 6400);
+  }
+  threat = Math.max(0, threat - 30);
+  updateThreat();
+  if (currentMapIndex < MAPS.length - 1) {
+    const nextIndex = currentMapIndex + 1;
+    setTimeout(() => {
+      loadMap(nextIndex);
+    }, 1600);
+  } else {
+    appendLore('[archive] vault axis allowed exit. the rest is blank space awaiting you.', null);
+    revealCredits();
+  }
 }
 
 function positionDoorPattern() {
+  if (!doorPlacement) return;
   doorPattern.style.left = '';
   doorPattern.style.right = '';
   doorPattern.style.top = '';
@@ -575,7 +895,7 @@ function revealCredits() {
   credits.innerHTML = `
     <div class="pane-content">
       <header><span class="label">pointer.exe</span><span class="value">system log</span></header>
-      <pre>SESSION TERMINATED\nVECTOR RELEASED\nTHANK YOU FOR YOUR STEADY HAND.</pre>
+      <pre>SESSION TERMINATED\nVECTOR RELEASED\nLEAVE YOUR STORY IN THE GAPS.</pre>
     </div>
   `;
   document.body.append(credits);
@@ -589,10 +909,8 @@ menuButtons.forEach((button) => {
     const action = button.dataset.action;
     if (action === 'open') {
       showGame();
-    } else if (action === 'audit') {
-      cueWhisper('audit mode // minimal threat');
-      showGame();
-      threat = 0;
+    } else if (action === 'preferences') {
+      openPreferences();
     } else if (action === 'erase') {
       cueWhisper('erase denied');
     }
@@ -601,6 +919,8 @@ menuButtons.forEach((button) => {
 
 animateHash();
 setHoldProgress(0);
+initializePreferences();
+requestAnimationFrame(tick);
 
 // keep pointer indicator present even when mouse leaves viewport
 window.addEventListener('blur', () => {
@@ -608,11 +928,6 @@ window.addEventListener('blur', () => {
 });
 
 window.addEventListener('resize', () => {
-  // reposition fragments on resize
-  document.querySelectorAll('.fragment').forEach((node) => {
-    const frag = FRAGMENTS.find((f) => f.id === node.dataset.id);
-    if (!frag) return;
-    node.style.left = `calc(${frag.pos.x * 100}% - 70px)`;
-    node.style.top = `calc(${frag.pos.y * 100}% - 50px)`;
-  });
+  layoutFragments();
+  positionDoorPattern();
 });

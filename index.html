@@ -9,7 +9,7 @@
 </head>
 <body>
   <div id="menu" class="pane visible">
-    <div class="pane-content">
+    <div class="pane-content menu-pane">
       <header>
         <span class="label">file</span>
         <span class="value">pointer.exe</span>
@@ -21,10 +21,17 @@
       </section>
       <nav>
         <button data-action="open">open</button>
-        <button data-action="audit">audit</button>
+        <button data-action="preferences">preferances</button>
         <button data-action="erase">erase</button>
       </nav>
-      <p class="hint">pointer.exe monitors pointer vectors. proceed calmly.</p>
+      <article class="menu-lore">
+        <header>
+          <span class="label">fragment log</span>
+          <span class="value">bootstrap excerpts</span>
+        </header>
+        <pre id="intro-lore" class="scrollable"></pre>
+      </article>
+      <p class="hint">pointer.exe monitors pointer vectors. proceed calmly. do not let the log close on you.</p>
     </div>
   </div>
 
@@ -71,13 +78,34 @@
     </div>
   </div>
 
+  <div id="preferences" class="pane hidden">
+    <div class="pane-content">
+      <header>
+        <span class="label">pointer.exe</span>
+        <span class="value">preferances</span>
+        <button class="close" data-action="close-preferences">✕</button>
+      </header>
+      <p class="intro">toggle interface anomalies here. log segments imply the cursor was grafted late in development.</p>
+      <div class="toggle">
+        <span class="toggle-label">custom cursor</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="custom-cursor-toggle" />
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+        <span class="toggle-state" data-state></span>
+      </div>
+      <p class="footnote">note: default pointer exposes raw system intent. researchers disagree if that is safer.</p>
+      <button class="secondary" data-action="close-preferences">done</button>
+    </div>
+  </div>
+
   <div id="lore-pane" class="pane hidden">
     <div class="pane-content">
       <header>
         <span class="label">fragment log</span>
         <button class="close" data-action="close-lore">✕</button>
       </header>
-      <pre id="lore-text"></pre>
+      <pre id="lore-text" class="scrollable"></pre>
     </div>
   </div>
 
