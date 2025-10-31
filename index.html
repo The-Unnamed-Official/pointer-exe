@@ -16,77 +16,56 @@
     <div id="noise-layer"></div>
     <div id="scanline-layer"></div>
     <main id="realm" aria-live="polite">
-      <section id="menu" class="diegetic-panel" aria-hidden="false">
-        <div class="menu-overlay menu-overlay--glow" aria-hidden="true"></div>
-        <div class="menu-overlay menu-overlay--scan" aria-hidden="true"></div>
-        <div class="menu-overlay menu-overlay--grain" aria-hidden="true"></div>
-        <header class="menu-header">
-          <h1 aria-label="pointer.exe">
-            pointer<span class="title-exe" aria-hidden="true">.exe</span>
-          </h1>
-          <p class="subtitle">self-observing pointer interface</p>
-        </header>
-        <div class="menu-body">
-          <nav class="menu-actions" aria-label="main menu">
-            <button class="menu-option" type="button" data-command="start">
-              start
+      <section id="menu" class="main-menu" aria-hidden="false">
+        <div class="menu-backdrop" aria-hidden="true">
+          <div class="menu-gradient"></div>
+          <div id="glitch-field" class="glitch-field"></div>
+        </div>
+        <div class="menu-content">
+          <header class="menu-title-block">
+            <h1 class="menu-title" aria-label="pointer.exe">
+              pointer<span class="title-exe" aria-hidden="true">.exe</span>
+            </h1>
+            <div class="fake-cursors" aria-hidden="true">
+              <span class="fake-cursor fake-cursor--one"></span>
+              <span class="fake-cursor fake-cursor--two"></span>
+              <span class="fake-cursor fake-cursor--three"></span>
+            </div>
+          </header>
+          <p class="menu-tagline">self-observing pointer interface</p>
+          <div class="menu-actions" role="menu">
+            <button class="menu-button" type="button" data-command="start">
+              Start
             </button>
             <button
-              class="menu-option"
+              class="menu-button secondary"
               type="button"
-              data-command="settings"
-              aria-controls="settings-panel"
+              data-command="preferences"
+              aria-controls="preferences-panel"
               aria-expanded="false"
             >
-              settings
+              Preferances
             </button>
-            <button class="menu-option" type="button" data-command="erase">
-              erase data
-            </button>
-          </nav>
-          <section
-            id="settings-panel"
-            class="menu-settings"
-            aria-hidden="true"
-            hidden
-          >
-            <h2>settings</h2>
-            <div class="settings-group">
-              <label class="setting-toggle">
-                <input type="checkbox" id="setting-audit-mode" />
-                <span class="toggle-visual" aria-hidden="true">
-                  <span class="toggle-thumb"></span>
-                </span>
-                <span class="toggle-label">audit mode</span>
-              </label>
-              <p class="setting-hint">
-                expands the light radius for testing and exploration.
-              </p>
-            </div>
-            <div class="settings-group">
-              <label class="setting-toggle">
-                <input type="checkbox" id="setting-show-intro" />
-                <span class="toggle-visual" aria-hidden="true">
-                  <span class="toggle-thumb"></span>
-                </span>
-                <span class="toggle-label">show introduction</span>
-              </label>
-              <p class="setting-hint">
-                display the initialization briefing before each run.
-              </p>
-            </div>
-            <button
-              class="menu-option secondary"
-              type="button"
-              data-command="close-settings"
-            >
-              close settings
-            </button>
-          </section>
+          </div>
         </div>
-        <footer>
-          <p class="menu-hint">click start to initialize the vault</p>
-        </footer>
+        <div
+          id="preferences-panel"
+          class="preferences-panel"
+          hidden
+          aria-hidden="true"
+        >
+          <div class="preferences-content">
+            <h2>Preferances</h2>
+            <p>Configuration options coming soon.</p>
+            <button
+              class="menu-button tertiary"
+              type="button"
+              data-command="close-preferences"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       </section>
 
       <div id="screen" role="application" aria-label="pointer.exe realm">
