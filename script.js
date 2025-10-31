@@ -135,6 +135,8 @@ function init() {
     flashlightOverlay.setAttribute("aria-hidden", "true");
   }
   generateAmbientText();
+  state.lastTimestamp = performance.now();
+  requestAnimationFrame(tick);
 }
 
 function bindMenu() {
@@ -234,7 +236,6 @@ function startRun(options = {}) {
     flashlightOverlay.setAttribute("aria-hidden", "true");
   }
   state.lastTimestamp = performance.now();
-  requestAnimationFrame(tick);
 }
 
 function pause() {
@@ -248,7 +249,6 @@ function resume() {
   state.paused = false;
   pauseOverlay.close();
   state.lastTimestamp = performance.now();
-  requestAnimationFrame(tick);
 }
 
 function rebuildZones() {
@@ -533,11 +533,15 @@ function createLoreFragment(index) {
 }
 
 function tick(timestamp) {
-  if (!state.running || state.paused) return;
   const dt = timestamp - state.lastTimestamp;
   state.lastTimestamp = timestamp;
   state.overlayOffset.x = 0;
   state.overlayOffset.y = 0;
+  if (!state.running || state.paused) {
+    updateCursor(dt);
+    requestAnimationFrame(tick);
+    return;
+  }
   updateZones(dt);
   updateAnomalies(dt);
   updateEdges(dt);
