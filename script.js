@@ -499,7 +499,9 @@ function openSettings() {
   settingsPanel.removeAttribute("hidden");
   settingsPanel.setAttribute("aria-hidden", "false");
   menu.classList.add("settings-visible");
-  settingsToggleButton?.setAttribute("aria-expanded", "true");
+  if (settingsToggleButton) {
+    settingsToggleButton.setAttribute("aria-expanded", "true");
+  }
 }
 
 function closeSettings() {
@@ -508,7 +510,9 @@ function closeSettings() {
   settingsPanel.setAttribute("aria-hidden", "true");
   settingsPanel.setAttribute("hidden", "");
   menu.classList.remove("settings-visible");
-  settingsToggleButton?.setAttribute("aria-expanded", "false");
+  if (settingsToggleButton) {
+    settingsToggleButton.setAttribute("aria-expanded", "false");
+  }
 }
 
 function openDialog(dialog) {
@@ -532,7 +536,7 @@ function closeDialog(dialog) {
 function openIntro() {
   if (state.running) return;
   if (!introDialog) {
-    startFromMenu(pendingStartOptions ?? {});
+    startFromMenu(pendingStartOptions == null ? {} : pendingStartOptions);
     return;
   }
   if (!pendingStartOptions) {
@@ -540,7 +544,9 @@ function openIntro() {
   }
   openDialog(introDialog);
   const primary = introDialog.querySelector("[data-action='begin-run']");
-  primary?.focus();
+  if (primary) {
+    primary.focus();
+  }
 }
 
 function startFromMenu(options = {}) {
@@ -553,7 +559,7 @@ function closeIntro(startGame = false) {
     closeDialog(introDialog);
   }
   if (startGame) {
-    const options = pendingStartOptions ?? {};
+    const options = pendingStartOptions == null ? {} : pendingStartOptions;
     startFromMenu(options);
   } else {
     pendingStartOptions = null;
@@ -564,7 +570,9 @@ function openEraseConfirm() {
   if (!eraseConfirmDialog) return;
   openDialog(eraseConfirmDialog);
   const cancelButton = eraseConfirmDialog.querySelector("[data-action='cancel-erase']");
-  cancelButton?.focus();
+  if (cancelButton) {
+    cancelButton.focus();
+  }
 }
 
 function closeEraseConfirm() {
@@ -607,66 +615,90 @@ function bindMenu() {
   settingsToggleButton = menu.querySelector("[data-action='settings']");
   const eraseButton = menu.querySelector("[data-action='erase']");
   const closeSettingsButton = menu.querySelector("[data-action='close-settings']");
-  const introBeginButton = introDialog?.querySelector("[data-action='begin-run']");
-  const introSkipButton = introDialog?.querySelector("[data-action='skip-intro']");
-  const confirmEraseButton = eraseConfirmDialog?.querySelector(
-    "[data-action='confirm-erase']"
-  );
-  const cancelEraseButton = eraseConfirmDialog?.querySelector(
-    "[data-action='cancel-erase']"
-  );
+  const introBeginButton = introDialog
+    ? introDialog.querySelector("[data-action='begin-run']")
+    : null;
+  const introSkipButton = introDialog
+    ? introDialog.querySelector("[data-action='skip-intro']")
+    : null;
+  const confirmEraseButton = eraseConfirmDialog
+    ? eraseConfirmDialog.querySelector("[data-action='confirm-erase']")
+    : null;
+  const cancelEraseButton = eraseConfirmDialog
+    ? eraseConfirmDialog.querySelector("[data-action='cancel-erase']")
+    : null;
 
-  startButton?.addEventListener("click", () => {
-    if (state.running) return;
-    const options = {
-      audit: auditToggle?.checked ?? false,
-    };
-    const wantsIntro = Boolean(introToggle?.checked && introDialog);
-    closeSettings();
-    if (wantsIntro) {
-      pendingStartOptions = options;
-      openIntro();
-    } else {
-      startFromMenu(options);
-    }
-  });
-
-  settingsToggleButton?.addEventListener("click", () => {
-    if (settingsPanel?.hidden) {
-      openSettings();
-    } else {
+  if (startButton) {
+    startButton.addEventListener("click", () => {
+      if (state.running) return;
+      const options = {
+        audit: auditToggle ? auditToggle.checked : false,
+      };
+      const wantsIntro = Boolean(introToggle && introToggle.checked && introDialog);
       closeSettings();
-    }
-  });
+      if (wantsIntro) {
+        pendingStartOptions = options;
+        openIntro();
+      } else {
+        startFromMenu(options);
+      }
+    });
+  }
 
-  eraseButton?.addEventListener("click", () => {
-    closeSettings();
-    if (eraseButton) {
+  if (settingsToggleButton) {
+    settingsToggleButton.addEventListener("click", () => {
+      if (settingsPanel && settingsPanel.hidden) {
+        openSettings();
+      } else {
+        closeSettings();
+      }
+    });
+  }
+
+  if (eraseButton) {
+    eraseButton.addEventListener("click", () => {
+      closeSettings();
       glitchMenu(eraseButton);
-    }
-    setTimeout(() => {
-      openEraseConfirm();
-    }, 220);
-  });
+      setTimeout(() => {
+        openEraseConfirm();
+      }, 220);
+    });
+  }
 
-  closeSettingsButton?.addEventListener("click", () => {
-    closeSettings();
-    settingsToggleButton?.focus();
-  });
+  if (closeSettingsButton) {
+    closeSettingsButton.addEventListener("click", () => {
+      closeSettings();
+      if (settingsToggleButton) {
+        settingsToggleButton.focus();
+      }
+    });
+  }
 
-  introBeginButton?.addEventListener("click", () => closeIntro(true));
-  introSkipButton?.addEventListener("click", () => closeIntro(true));
-  introDialog?.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeIntro(true);
-  });
+  if (introBeginButton) {
+    introBeginButton.addEventListener("click", () => closeIntro(true));
+  }
+  if (introSkipButton) {
+    introSkipButton.addEventListener("click", () => closeIntro(true));
+  }
+  if (introDialog) {
+    introDialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeIntro(true);
+    });
+  }
 
-  confirmEraseButton?.addEventListener("click", performErase);
-  cancelEraseButton?.addEventListener("click", () => closeEraseConfirm());
-  eraseConfirmDialog?.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeEraseConfirm();
-  });
+  if (confirmEraseButton) {
+    confirmEraseButton.addEventListener("click", performErase);
+  }
+  if (cancelEraseButton) {
+    cancelEraseButton.addEventListener("click", () => closeEraseConfirm());
+  }
+  if (eraseConfirmDialog) {
+    eraseConfirmDialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeEraseConfirm();
+    });
+  }
 
 }
 
@@ -714,7 +746,7 @@ function startRun(options = {}) {
     menu.setAttribute("aria-hidden", "true");
   }
   state.running = true;
-  state.auditMode = options.audit ?? false;
+  state.auditMode = options && typeof options.audit !== "undefined" ? options.audit : false;
   document.body.classList.toggle("audit-mode", state.auditMode);
   rebuildZones();
   state.levelIndex = 0;
@@ -830,14 +862,16 @@ function rebuildZones() {
 function spawnFragments() {
   fragmentsLayer.innerHTML = "";
   state.fragments = [];
-  const levelData = state.level ?? gameLevels[state.levelIndex] ?? null;
-  const fragmentPool = levelData?.fragments ?? [];
+  const levelData = state.level || gameLevels[state.levelIndex] || null;
+  const fragmentPool = levelData && Array.isArray(levelData.fragments)
+    ? levelData.fragments
+    : [];
   const total = fragmentPool.length;
   state.solvedCount = 0;
   state.levelComplete = false;
   if (!total) return;
   for (let i = 0; i < total; i += 1) {
-    const zone = state.zones[(i * 2 + 1) % state.zones.length] ?? state.zones[0];
+    const zone = state.zones[(i * 2 + 1) % state.zones.length] || state.zones[0];
     const node = fragmentTemplate.content.firstElementChild.cloneNode(true);
     const rect = positionWithinZone(zone, node);
     const blueprint = fragmentPool[i % fragmentPool.length];
@@ -852,8 +886,8 @@ function spawnFragments() {
       decayDelay: 0,
       absorbsLight: Math.random() > 0.55,
       burnsInLight: Math.random() > 0.68,
-      item: blueprint?.item ?? null,
-      location: blueprint?.location ?? null,
+      item: blueprint && blueprint.item ? blueprint.item : null,
+      location: blueprint && blueprint.location ? blueprint.location : null,
       itemCollected: false,
     };
     node.style.setProperty("--progress", fragment.progress);
@@ -1009,17 +1043,18 @@ function loadLevel(index) {
 
 function updateLevelDisplay() {
   if (levelNameEl) {
-    levelNameEl.textContent = state.level?.name ?? "—";
+    levelNameEl.textContent = state.level && state.level.name ? state.level.name : "—";
   }
   if (levelObjectiveEl) {
-    levelObjectiveEl.textContent = state.level?.objective ?? "—";
+    levelObjectiveEl.textContent =
+      state.level && state.level.objective ? state.level.objective : "—";
   }
 }
 
 function updateMapDisplay() {
   if (!mapGrid) return;
   mapGrid.innerHTML = "";
-  const nodes = state.activeMap ?? [];
+  const nodes = Array.isArray(state.activeMap) ? state.activeMap : [];
   if (!nodes.length) {
     const placeholder = document.createElement("li");
     placeholder.textContent = "map dormant";
@@ -1119,7 +1154,10 @@ function logStory(text) {
 function collectItem(item) {
   if (!item) return;
   if (state.inventory.some((entry) => entry.id === item.id)) return;
-  state.inventory.push({ ...item, levelId: state.level?.id ?? "" });
+  state.inventory.push({
+    ...item,
+    levelId: state.level && state.level.id ? state.level.id : "",
+  });
   addLoreEntry(`item recovered :: ${item.name.toLowerCase()}`);
   updateInventoryDisplay();
 }
@@ -1299,16 +1337,19 @@ function handlePointerMove(event) {
 function generateAmbientText(levelData = state.level) {
   const lines = [];
   const totalLines = 18;
-  const mapNodes = levelData?.map ?? [];
-  const activeNodes = state.activeMap ?? [];
+  const mapNodes = levelData && Array.isArray(levelData.map) ? levelData.map : [];
+  const activeNodes = Array.isArray(state.activeMap) ? state.activeMap : [];
   for (let i = 0; i < totalLines; i += 1) {
     if (i < mapNodes.length) {
       const node = mapNodes[i];
-      const active = activeNodes.find((entry) => entry.id === node.id)?.visited ?? false;
+      const activeEntry = activeNodes.find((entry) => entry.id === node.id);
+      const active = activeEntry && typeof activeEntry.visited !== "undefined"
+        ? activeEntry.visited
+        : false;
       const status = active ? "[stabilized]" : "[unmapped]";
       const descriptor = active ? node.detail : node.hint;
       lines.push(`${status} ${node.name.toLowerCase()} :: ${descriptor.toLowerCase()}`);
-    } else if (i === totalLines - 2 && levelData?.objective) {
+    } else if (i === totalLines - 2 && levelData && levelData.objective) {
       lines.push(`[objective] ${levelData.objective.toLowerCase()}`);
     } else if (i === totalLines - 1) {
       lines.push(`[threat] ${Math.round(state.threat).toString().padStart(3, "0")} :: monitor drift`);
@@ -1327,18 +1368,26 @@ function generateAmbientText(levelData = state.level) {
 function createLoreFragment(index, levelData, blueprint) {
   if (blueprint) {
     const corrupt =
-      blueprint.corrupt ??
-      `>${(blueprint.id || "fragment")}::${Math.random()
-        .toString(16)
-        .slice(2, 10)}`;
+      typeof blueprint.corrupt !== "undefined" && blueprint.corrupt !== null
+        ? blueprint.corrupt
+        : `>${(blueprint.id || "fragment")}::${Math.random()
+            .toString(16)
+            .slice(2, 10)}`;
+    const fallbackObjective =
+      levelData && levelData.objective
+        ? levelData.objective
+        : "fragment resolved :: threat dampens";
     const clean =
-      blueprint.clear ??
-      (levelData?.objective ?? "fragment resolved :: threat dampens");
+      typeof blueprint.clear !== "undefined" && blueprint.clear !== null
+        ? blueprint.clear
+        : fallbackObjective;
     return {
       stageText: [corrupt, clean],
       stage: 0,
-      story: blueprint.story ?? "",
-      item: blueprint.item ?? null,
+      story: typeof blueprint.story !== "undefined" && blueprint.story !== null
+        ? blueprint.story
+        : "",
+      item: blueprint.item ? blueprint.item : null,
     };
   }
 
@@ -1425,7 +1474,9 @@ function updateZones(dt) {
 
   let desired = state.flashlight.baseRadius;
   if (activeZone) {
-    desired = state.flashlight.baseRadius * (activeZone.flashlightFactor ?? 1);
+    const factor =
+      typeof activeZone.flashlightFactor === "number" ? activeZone.flashlightFactor : 1;
+    desired = state.flashlight.baseRadius * factor;
     const temperament = activeZone.temperament;
     const pressure =
       temperament === "hostile" ? 3.2 : temperament === "watchful" ? 1.6 : 0.6;
@@ -1531,7 +1582,7 @@ function solveFragment(fragment) {
     collectItem(fragment.item);
     fragment.itemCollected = true;
   }
-  if (fragment.lore?.story) {
+  if (fragment.lore && fragment.lore.story) {
     logStory(fragment.lore.story);
   }
   markMapNode(fragment.location);
@@ -1550,7 +1601,7 @@ function addLoreEntry(text) {
 
 function emitWhisper(zone) {
   if (!whispersLayer) return;
-  const options = whisperLibrary[zone.temperament] ?? whisperLibrary.calm;
+  const options = whisperLibrary[zone.temperament] || whisperLibrary.calm;
   let message = options[Math.floor(Math.random() * options.length)];
   if (message === zone.lastWhisper) {
     message = options[(Math.floor(Math.random() * options.length) + 1) % options.length];
