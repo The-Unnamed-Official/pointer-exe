@@ -48,6 +48,14 @@ const edgeWarningMessages = [
   "signal bleed detected :: hold center",
 ];
 
+const flashlightSignals = [
+  { code: ".. .- -- ... -.-- -. -.-", meaning: "i am syncing" },
+  { code: "-... . .- -- ×", meaning: "beam x-reflect" },
+  { code: "01010011 01000101", meaning: "SE :: see" },
+  { code: "..-. .- -.-. .", meaning: "face" },
+  { code: "-- .- -.-- -.-. --- .--.", meaning: "may copy" },
+];
+
 const zoneFlashlightFactors = {
   calm: 1.12,
   watchful: 1,
@@ -84,6 +92,17 @@ const state = {
     flicker: 0,
     penalty: 0,
     boost: 0,
+    lag: 0,
+    position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+    online: false,
+    activationTimer: 0,
+    stability: 100,
+    off: false,
+    messageCooldown: 0,
+    reflectionTimer: 0,
+    displayRadius: 0,
+    drainingFragment: null,
+    lastToggle: 0,
   },
   edgeWarningTimer: 0,
 };
@@ -93,6 +112,7 @@ const zoneTemperaments = ["calm", "watchful", "hostile"];
 function init() {
   bindMenu();
   bindPause();
+  bindFlashlightControls();
   screen.addEventListener("mousemove", handlePointerMove);
   screen.addEventListener("pointerdown", handlePointerDown);
   screen.addEventListener("pointerup", handlePointerUp);
@@ -112,6 +132,7 @@ function init() {
     flashlightOverlay.style.setProperty("--x", `${state.pointer.x}px`);
     flashlightOverlay.style.setProperty("--y", `${state.pointer.y}px`);
     flashlightOverlay.style.setProperty("--radius", `${state.flashlight.radius}px`);
+    flashlightOverlay.setAttribute("aria-hidden", "true");
   }
   generateAmbientText();
 }
@@ -144,6 +165,20 @@ function bindPause() {
   pauseOverlay.querySelector("[data-action='resume']").addEventListener("click", resume);
 }
 
+function bindFlashlightControls() {
+  document.addEventListener("keydown", (event) => {
+    if (!state.running || state.paused) return;
+    if (event.key.toLowerCase() === "x") {
+      toggleFlashlight();
+    }
+  });
+  document.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    if (!state.running) return;
+    toggleFlashlight();
+  });
+}
+
 function startRun(options = {}) {
   menu.classList.add("fade-out");
   setTimeout(() => {
@@ -169,6 +204,18 @@ function startRun(options = {}) {
   state.flashlight.flicker = 0;
   state.flashlight.penalty = 0;
   state.flashlight.boost = 0;
+  state.flashlight.lag = 0;
+  state.flashlight.stability = 100;
+  state.flashlight.online = false;
+  state.flashlight.activationTimer = 2200;
+  state.flashlight.off = false;
+  state.flashlight.position.x = state.pointer.x;
+  state.flashlight.position.y = state.pointer.y;
+  state.flashlight.messageCooldown = 0;
+  state.flashlight.reflectionTimer = 0;
+  state.flashlight.displayRadius = 0;
+  state.flashlight.drainingFragment = null;
+  state.flashlight.lastToggle = performance.now();
   state.activeAnchor = null;
   state.edgeWarningTimer = 0;
   state.activeZone = null;
@@ -176,6 +223,16 @@ function startRun(options = {}) {
   whispersLayer.innerHTML = "";
   edgeWarning.textContent = "";
   edgeWarning.classList.remove("visible");
+  document.body.classList.remove(
+    "flashlight-online",
+    "flashlight-unstable",
+    "flashlight-off",
+    "flashlight-reflection",
+    "flashlight-drain"
+  );
+  if (flashlightOverlay) {
+    flashlightOverlay.setAttribute("aria-hidden", "true");
+  }
   state.lastTimestamp = performance.now();
   requestAnimationFrame(tick);
 }
@@ -236,11 +293,19 @@ function spawnFragments() {
       lore: createLoreFragment(i),
       temperament: zone.temperament,
       decayDelay: 0,
+      absorbsLight: Math.random() > 0.55,
+      burnsInLight: Math.random() > 0.68,
     };
     node.style.setProperty("--progress", fragment.progress);
     node.style.left = `${rect.x}px`;
     node.style.top = `${rect.y}px`;
     node.dataset.index = i;
+    if (fragment.absorbsLight) {
+      node.dataset.absorb = "true";
+    }
+    if (fragment.burnsInLight) {
+      node.dataset.scorch = "true";
+    }
     node.addEventListener("pointerenter", () => onFragmentHover(fragment));
     node.addEventListener("pointerleave", () => onFragmentLeave(fragment));
     node.addEventListener("pointerdown", (event) => onFragmentPointerDown(event, fragment));
@@ -271,6 +336,7 @@ function spawnAnomalies() {
       temperament: zoneTemperaments[Math.floor(Math.random() * zoneTemperaments.length)],
       latency: Math.random() * 0.004 + 0.002,
       type: anomalyTypes[i % anomalyTypes.length],
+      beamExposure: 0,
     };
     positionNode(node, anomaly.x, anomaly.y);
     state.anomalies.push(anomaly);
@@ -356,11 +422,24 @@ function onFragmentHover(fragment) {
   fragment.node.classList.add("active");
   fragment.node.querySelector(".fragment-core").style.filter = "brightness(1.4)";
   adjustThreat(fragment.temperament === "hostile" ? 2 : 0.5);
+  if (fragment.absorbsLight && state.flashlight.online && !state.flashlight.off) {
+    state.flashlight.penalty = Math.min(
+      state.flashlight.baseRadius * 0.75,
+      state.flashlight.penalty + 60
+    );
+    state.flashlight.stability = Math.max(0, state.flashlight.stability - 6);
+    state.flashlight.drainingFragment = fragment;
+    document.body.classList.add("flashlight-drain");
+  }
 }
 
 function onFragmentLeave(fragment) {
   fragment.node.classList.remove("active");
   fragment.node.querySelector(".fragment-core").style.filter = "";
+  if (state.flashlight.drainingFragment === fragment) {
+    state.flashlight.drainingFragment = null;
+    document.body.classList.remove("flashlight-drain");
+  }
   if (state.hold.target === fragment) {
     stopHolding();
   }
@@ -566,6 +645,30 @@ function updateFragments(dt) {
         fragment.node.style.setProperty("--progress", (fragment.progress / HOLD_TIME) * 100);
       }
     }
+    if (
+      state.flashlight.online &&
+      !state.flashlight.off &&
+      fragment.burnsInLight &&
+      !fragment.solved &&
+      state.flashlight.displayRadius > 0
+    ) {
+      const rect = fragment.node.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.hypot(
+        centerX - state.flashlight.position.x,
+        centerY - state.flashlight.position.y
+      );
+      if (distance < state.flashlight.displayRadius * 0.55) {
+        fragment.progress = Math.max(0, fragment.progress - dt * 1.2);
+        fragment.node.classList.add("scorched");
+        fragment.decayDelay = 0;
+      } else {
+        fragment.node.classList.remove("scorched");
+      }
+    } else {
+      fragment.node.classList.remove("scorched");
+    }
   });
 }
 
@@ -575,6 +678,10 @@ function solveFragment(fragment) {
   fragment.stage += 1;
   fragment.node.classList.add("solved");
   fragment.node.style.setProperty("--progress", 100);
+  if (state.flashlight.drainingFragment === fragment) {
+    state.flashlight.drainingFragment = null;
+    document.body.classList.remove("flashlight-drain");
+  }
   const textNode = fragment.node.querySelector(".fragment-text");
   textNode.textContent = fragment.lore.stageText[Math.min(fragment.stage, fragment.lore.stageText.length - 1)];
   addLoreEntry(textNode.textContent);
@@ -759,6 +866,7 @@ function hideEdgeWarning() {
 function updateAnomalies(dt) {
   const rect = screen.getBoundingClientRect();
   const { width, height } = rect;
+  const seconds = dt / 1000;
   state.anomalies.forEach((anomaly) => {
     if (anomaly.type === "stalker") {
       const targetX = state.pointer.x - rect.left;
@@ -799,6 +907,14 @@ function updateAnomalies(dt) {
       state.overlayOffset.x += dx * -0.06 * intensity;
       state.overlayOffset.y += dy * -0.06 * intensity;
       adjustThreat(intensity * (anomaly.type === "siphon" ? 0.8 : 0.5));
+      state.flashlight.lag = Math.min(
+        0.28,
+        state.flashlight.lag + intensity * (anomaly.type === "siphon" ? 0.08 : 0.04)
+      );
+      if (state.flashlight.online && !state.flashlight.off) {
+        const stabilityDrag = intensity * (anomaly.type === "siphon" ? 34 : 18) * seconds;
+        state.flashlight.stability = Math.max(0, state.flashlight.stability - stabilityDrag);
+      }
       if (anomaly.type === "siphon") {
         state.flashlight.penalty = Math.min(
           state.flashlight.baseRadius * 0.7,
@@ -814,6 +930,36 @@ function updateAnomalies(dt) {
         }
       }
     }
+
+    if (state.flashlight.online && !state.flashlight.off && state.flashlight.displayRadius > 0) {
+      const beamX = state.flashlight.position.x - rect.left;
+      const beamY = state.flashlight.position.y - rect.top;
+      const beamDx = beamX - anomaly.x;
+      const beamDy = beamY - anomaly.y;
+      const beamDistance = Math.hypot(beamDx, beamDy);
+      const leash = state.flashlight.displayRadius * (anomaly.type === "stalker" ? 1.05 : 0.9);
+      if (beamDistance < leash) {
+        anomaly.beamExposure += dt;
+        state.flashlight.stability = Math.max(
+          0,
+          state.flashlight.stability - seconds * (22 + anomaly.beamExposure * 0.0004)
+        );
+        if (anomaly.beamExposure > 1400) {
+          const norm = Math.max(1, beamDistance);
+          anomaly.velocity.x += (beamDx / norm) * 26 * seconds;
+          anomaly.velocity.y += (beamDy / norm) * 26 * seconds;
+          anomaly.velocity.x = clamp(anomaly.velocity.x, -64, 64);
+          anomaly.velocity.y = clamp(anomaly.velocity.y, -64, 64);
+          state.flashlight.lag = Math.min(0.32, state.flashlight.lag + 0.14 * seconds);
+          adjustThreat(seconds * 6.5);
+        }
+      } else {
+        anomaly.beamExposure = Math.max(0, anomaly.beamExposure - dt * 0.6);
+      }
+    } else {
+      anomaly.beamExposure = Math.max(0, anomaly.beamExposure - dt * 0.6);
+    }
+    anomaly.node.classList.toggle("agitated", anomaly.beamExposure > 900);
   });
 }
 
@@ -871,27 +1017,165 @@ function endRun() {
 
 function updateFlashlight(dt) {
   if (!flashlightOverlay) return;
+
+  if (!state.flashlight.online) {
+    if (state.flashlight.activationTimer > 0) {
+      state.flashlight.activationTimer -= dt;
+      if (state.flashlight.activationTimer <= 0) {
+        enableFlashlight();
+      }
+    }
+    return;
+  }
+
+  const seconds = dt / 1000;
+  const body = document.body;
+
   state.flashlight.penalty = Math.max(0, state.flashlight.penalty - dt * 0.02);
   if (!state.activeAnchor) {
     state.flashlight.boost = Math.max(0, state.flashlight.boost - dt * 0.05);
   }
-  const baseRadius = state.flashlight.desiredRadius + state.flashlight.boost - state.flashlight.penalty;
+  state.flashlight.lag = Math.max(0, state.flashlight.lag - dt * 0.00018);
+
+  if (state.flashlight.messageCooldown > 0) {
+    state.flashlight.messageCooldown -= dt;
+  }
+
+  if (state.flashlight.off) {
+    state.flashlight.stability = Math.min(100, state.flashlight.stability + seconds * 12);
+  } else {
+    const stressDrain = state.cursorSpeed * 18 * seconds;
+    const dragDrain = state.flashlight.lag * 110 * seconds;
+    const threatDrain = (state.threat / 100) * 8 * seconds;
+    const baseDrain = 6 * seconds + stressDrain + dragDrain + threatDrain;
+    state.flashlight.stability = Math.max(0, state.flashlight.stability - baseDrain);
+  }
+
+  if (!state.flashlight.off && state.flashlight.stability < 45) {
+    body.classList.add("flashlight-unstable");
+    state.flashlight.flicker = Math.max(
+      state.flashlight.flicker,
+      (45 - state.flashlight.stability) * 5
+    );
+  } else {
+    body.classList.remove("flashlight-unstable");
+  }
+
+  if (
+    state.flashlight.messageCooldown <= 0 &&
+    state.flashlight.stability < 60 &&
+    !state.flashlight.off
+  ) {
+    emitFlashlightSignal();
+  }
+
+  if (state.flashlight.reflectionTimer > 0) {
+    state.flashlight.reflectionTimer -= dt;
+    if (state.flashlight.reflectionTimer <= 0) {
+      body.classList.remove("flashlight-reflection");
+    }
+  } else if (
+    !state.flashlight.off &&
+    state.flashlight.stability < 24 &&
+    Math.random() < seconds * 1.3
+  ) {
+    state.flashlight.reflectionTimer = 1400 + Math.random() * 800;
+    body.classList.add("flashlight-reflection");
+  }
+
+  if (!state.flashlight.drainingFragment) {
+    body.classList.remove("flashlight-drain");
+  }
+
+  const instabilityPenalty = clamp((100 - state.flashlight.stability) * 1.4, 0, state.flashlight.baseRadius);
+  const baseRadius =
+    state.flashlight.desiredRadius +
+    state.flashlight.boost -
+    state.flashlight.penalty -
+    instabilityPenalty;
   const threatDrag = state.threat * 1.1;
-  const target = clamp(baseRadius - threatDrag, 110, state.flashlight.baseRadius * 1.6);
+  const minRadius = state.flashlight.off ? 60 : 110;
+  const maxRadius = state.flashlight.baseRadius * (state.flashlight.off ? 0.9 : 1.6);
+  const target = clamp(baseRadius - threatDrag, minRadius, maxRadius);
   state.flashlight.radius += (target - state.flashlight.radius) * 0.08;
   state.flashlight.flicker = Math.max(0, state.flashlight.flicker - dt);
   const flickerOffset =
-    state.flashlight.flicker > 0 ? (Math.random() - 0.5) * Math.min(60, state.flashlight.flicker / 2) : 0;
-  const radiusValue = Math.max(110, state.flashlight.radius + flickerOffset);
+    state.flashlight.flicker > 0 && !state.flashlight.off
+      ? (Math.random() - 0.5) * Math.min(80, state.flashlight.flicker / 2)
+      : 0;
+  const rawRadius = Math.max(minRadius, state.flashlight.radius + flickerOffset);
+
   const displayedX = parseFloat(cursor.dataset.x || state.pointer.x) + state.overlayOffset.x;
   const displayedY = parseFloat(cursor.dataset.y || state.pointer.y) + state.overlayOffset.y;
-  flashlightOverlay.style.setProperty("--x", `${displayedX}px`);
-  flashlightOverlay.style.setProperty("--y", `${displayedY}px`);
-  flashlightOverlay.style.setProperty("--radius", `${radiusValue}px`);
-  if (state.flashlight.flicker > 0) {
-    document.body.classList.add("flashlight-flicker");
+  const stress = (100 - state.flashlight.stability) / 100;
+  const smoothing = clamp(0.18 - stress * 0.1 - state.flashlight.lag, 0.03, 0.18);
+  state.flashlight.position.x += (displayedX - state.flashlight.position.x) * smoothing;
+  state.flashlight.position.y += (displayedY - state.flashlight.position.y) * smoothing;
+
+  const effectiveRadius = state.flashlight.off ? Math.max(60, rawRadius * 0.35) : rawRadius;
+  flashlightOverlay.style.setProperty("--x", `${state.flashlight.position.x}px`);
+  flashlightOverlay.style.setProperty("--y", `${state.flashlight.position.y}px`);
+  flashlightOverlay.style.setProperty("--radius", `${effectiveRadius}px`);
+  state.flashlight.displayRadius = state.flashlight.off ? 0 : effectiveRadius;
+
+  if (state.flashlight.flicker > 0 && !state.flashlight.off) {
+    body.classList.add("flashlight-flicker");
   } else {
-    document.body.classList.remove("flashlight-flicker");
+    body.classList.remove("flashlight-flicker");
+  }
+
+  body.classList.toggle("flashlight-off", state.flashlight.off);
+}
+
+function enableFlashlight() {
+  state.flashlight.online = true;
+  state.flashlight.activationTimer = 0;
+  state.flashlight.messageCooldown = 2000;
+  if (flashlightOverlay) {
+    flashlightOverlay.removeAttribute("aria-hidden");
+  }
+  document.body.classList.add("flashlight-online");
+  addLoreEntry("pointer-illumination protocol enabled");
+}
+
+function toggleFlashlight() {
+  if (!state.flashlight.online) return;
+  const now = performance.now();
+  if (now - state.flashlight.lastToggle < 320) return;
+  state.flashlight.lastToggle = now;
+  state.flashlight.off = !state.flashlight.off;
+  if (state.flashlight.off) {
+    addLoreEntry("light shuttered :: interface bares truth");
+    state.flashlight.reflectionTimer = 0;
+    state.flashlight.flicker = 0;
+    state.flashlight.drainingFragment = null;
+    document.body.classList.remove("flashlight-reflection", "flashlight-drain", "flashlight-flicker", "flashlight-unstable");
+  } else {
+    addLoreEntry("light restored :: it resumes observing");
+  }
+}
+
+function emitFlashlightSignal() {
+  if (!flashlightSignals.length) return;
+  const signal = flashlightSignals[Math.floor(Math.random() * flashlightSignals.length)];
+  state.flashlight.messageCooldown = 2600 + Math.random() * 2200;
+  addLoreEntry(`flashlight flicker :: ${signal.code}`);
+  if (whispersLayer) {
+    const node = document.createElement("div");
+    node.className = "whisper flashlight-signal";
+    node.textContent = signal.code;
+    if (signal.meaning) {
+      node.dataset.translation = signal.meaning;
+    }
+    whispersLayer.prepend(node);
+    requestAnimationFrame(() => node.classList.add("visible"));
+    while (whispersLayer.children.length > 6) {
+      whispersLayer.removeChild(whispersLayer.lastChild);
+    }
+    setTimeout(() => {
+      node.classList.remove("visible");
+      setTimeout(() => node.remove(), 600);
+    }, 2200);
   }
 }
 
