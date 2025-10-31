@@ -1,6 +1,5 @@
 const menu = document.getElementById("menu");
 const screen = document.getElementById("screen");
-const cursor = document.getElementById("cursor");
 const pauseOverlay = document.getElementById("pause-overlay");
 const ambientText = document.getElementById("ambient-text");
 const loreFeed = document.getElementById("lore-feed");
@@ -18,7 +17,6 @@ const mapGrid = document.getElementById("map-grid");
 const inventoryList = document.getElementById("inventory-list");
 const storyLog = document.getElementById("story-log");
 const settingsPanel = document.getElementById("settings-panel");
-const customCursorToggle = document.getElementById("custom-cursor-toggle");
 const introDialog = document.getElementById("intro-dialog");
 const eraseConfirmDialog = document.getElementById("erase-confirm-dialog");
 
@@ -28,16 +26,7 @@ const anchorTemplate = document.getElementById("anchor-template");
 
 const HOLD_TIME = 3200; // ms required to decrypt a fragment
 
-const supportsCustomCursor =
-  typeof window !== "undefined" &&
-  "PointerEvent" in window;
-
-const precisePointerTypes = new Set(["mouse", "pen", "unknown"]);
-let customCursorEnabled = false;
-let customCursorDisabled = false;
 let settingsToggleButton = null;
-
-const CUSTOM_CURSOR_PREF_KEY = "pointerexe.disableCustomCursor";
 
 const whisperLibrary = {
   calm: [
@@ -452,6 +441,7 @@ const state = {
   paused: false,
   threat: 0,
   pointer: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+  prevPointer: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
   overlayOffset: { x: 0, y: 0 },
   pointerLag: 0,
   cursorSpeed: 0,
@@ -500,65 +490,6 @@ const state = {
 
 const zoneTemperaments = ["calm", "watchful", "hostile"];
 
-function loadPreferences() {
-  if (!supportsCustomCursor) {
-    customCursorDisabled = true;
-    if (customCursorToggle) {
-      customCursorToggle.checked = true;
-      customCursorToggle.disabled = true;
-    }
-    applyCustomCursorPreference();
-    return;
-  }
-  try {
-    const stored = localStorage.getItem(CUSTOM_CURSOR_PREF_KEY);
-    customCursorDisabled = stored === "true";
-  } catch (error) {
-    customCursorDisabled = false;
-  }
-  if (customCursorToggle) {
-    customCursorToggle.checked = customCursorDisabled;
-  }
-  applyCustomCursorPreference();
-}
-
-function setCustomCursorDisabled(disabled) {
-  customCursorDisabled = disabled;
-  if (customCursorToggle && customCursorToggle.checked !== disabled) {
-    customCursorToggle.checked = disabled;
-  }
-  try {
-    localStorage.setItem(CUSTOM_CURSOR_PREF_KEY, disabled ? "true" : "false");
-  } catch (error) {
-    // ignore storage errors
-  }
-  applyCustomCursorPreference();
-  if (!disabled) {
-    enableCustomCursor();
-  }
-}
-
-function applyCustomCursorPreference() {
-  if (customCursorDisabled) {
-    deactivateCustomCursor();
-    return;
-  }
-  if (cursor) {
-    cursor.dataset.prevPointerX = state.pointer.x;
-    cursor.dataset.prevPointerY = state.pointer.y;
-  }
-}
-
-function deactivateCustomCursor() {
-  customCursorEnabled = false;
-  document.body.classList.remove("custom-cursor-ready");
-  if (cursor) {
-    cursor.style.opacity = "0";
-    cursor.dataset.prevPointerX = state.pointer.x;
-    cursor.dataset.prevPointerY = state.pointer.y;
-  }
-}
-
 function openSettings() {
   if (!settingsPanel || !menu) return;
   settingsPanel.hidden = false;
@@ -566,9 +497,6 @@ function openSettings() {
   settingsPanel.setAttribute("aria-hidden", "false");
   menu.classList.add("settings-visible");
   settingsToggleButton?.setAttribute("aria-expanded", "true");
-  if (customCursorToggle && !customCursorToggle.disabled) {
-    customCursorToggle.focus();
-  }
 }
 
 function closeSettings() {
@@ -631,13 +559,6 @@ function closeEraseConfirm() {
 }
 
 function performErase() {
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.removeItem(CUSTOM_CURSOR_PREF_KEY);
-    } catch (error) {
-      /* ignore storage errors */
-    }
-  }
   closeEraseConfirm();
   setTimeout(() => {
     location.reload();
@@ -645,7 +566,6 @@ function performErase() {
 }
 
 function init() {
-  loadPreferences();
   bindMenu();
   bindPause();
   bindFlashlightControls();
@@ -656,17 +576,6 @@ function init() {
   document.addEventListener("pointermove", handlePointerMove);
   document.addEventListener("pointerup", handlePointerUp);
   window.addEventListener("resize", rebuildZones);
-  if (supportsCustomCursor && cursor) {
-    document.addEventListener("mouseleave", handlePointerLeave);
-    document.addEventListener("mouseenter", handlePointerEnter);
-    window.addEventListener("blur", handlePointerLeave);
-    window.addEventListener("focus", handleWindowFocus);
-    cursor.style.opacity = "0";
-    cursor.style.left = `${state.pointer.x}px`;
-    cursor.style.top = `${state.pointer.y}px`;
-  } else if (cursor) {
-    cursor.style.display = "none";
-  }
   if (flashlightOverlay) {
     flashlightOverlay.style.setProperty("--x", `${state.pointer.x}px`);
     flashlightOverlay.style.setProperty("--y", `${state.pointer.y}px`);
@@ -735,9 +644,6 @@ function bindMenu() {
     closeEraseConfirm();
   });
 
-  customCursorToggle?.addEventListener("change", (event) => {
-    setCustomCursorDisabled(event.target.checked);
-  });
 }
 
 function bindPause() {
@@ -802,6 +708,8 @@ function startRun(options = {}) {
   state.doorActive = false;
   state.pointerLag = 0;
   state.cursorSpeed = 0;
+  state.prevPointer.x = state.pointer.x;
+  state.prevPointer.y = state.pointer.y;
   state.overlayOffset.x = 0;
   state.overlayOffset.y = 0;
   state.flashlight.baseRadius = state.auditMode ? 420 : 260;
@@ -1261,20 +1169,17 @@ function activateDoor() {
       return;
     }
     addLoreEntry("hold steady... harmonizing...");
-    cursor.classList.add("holding");
     let aborted = false;
     const monitor = setInterval(() => {
       if (state.threat > 44 || state.flashlight.flicker > 0 || state.flashlight.radius < 160) {
         aborted = true;
         clearInterval(monitor);
-        cursor.classList.remove("holding");
         addLoreEntry("pattern fractures :: threat flares");
         adjustThreat(12);
       }
     }, 160);
     setTimeout(() => {
       clearInterval(monitor);
-      cursor.classList.remove("holding");
       if (aborted) return;
       addLoreEntry("vector released. exit available.");
       endRun();
@@ -1323,7 +1228,6 @@ function onFragmentPointerDown(event, fragment) {
   state.hold.target = fragment;
   state.hold.start = performance.now();
   fragment.decayDelay = 400;
-  cursor.classList.add("holding");
 }
 
 function handlePointerDown(event) {
@@ -1331,55 +1235,14 @@ function handlePointerDown(event) {
   const fragmentEl = event.target.closest(".fragment");
   if (!fragmentEl) {
     state.hold.target = null;
-    cursor.classList.add("holding");
   }
 }
 
 function handlePointerUp() {
   if (!state.hold.target) {
-    cursor.classList.remove("holding");
     return;
   }
   finalizeHold(false);
-}
-
-function handlePointerLeave() {
-  if (!customCursorEnabled || !cursor) return;
-  cursor.style.opacity = "0";
-}
-
-function handlePointerEnter(event) {
-  if (!supportsCustomCursor || !cursor || customCursorDisabled) return;
-  if (!event || event.pointerType !== "touch") {
-    cursor.style.opacity = "1";
-  }
-}
-
-function handleWindowFocus() {
-  if (!customCursorEnabled || !cursor || customCursorDisabled) return;
-  cursor.style.opacity = "1";
-}
-
-function enableCustomCursor(event) {
-  if (!supportsCustomCursor || !cursor || customCursorEnabled) return;
-  if (customCursorDisabled) {
-    deactivateCustomCursor();
-    return;
-  }
-  if (event?.pointerType && event.pointerType !== "unknown" && !precisePointerTypes.has(event.pointerType)) {
-    return;
-  }
-  customCursorEnabled = true;
-  document.body.classList.add("custom-cursor-ready");
-  const startX = event?.clientX ?? state.pointer.x;
-  const startY = event?.clientY ?? state.pointer.y;
-  cursor.dataset.x = startX;
-  cursor.dataset.y = startY;
-  cursor.dataset.prevPointerX = startX;
-  cursor.dataset.prevPointerY = startY;
-  cursor.style.left = `${startX}px`;
-  cursor.style.top = `${startY}px`;
-  cursor.style.opacity = "1";
 }
 
 function finalizeHold(completed) {
@@ -1390,7 +1253,6 @@ function finalizeHold(completed) {
     fragment.node.querySelector(".fragment-core").style.filter = "";
   }
   state.hold.target = null;
-  cursor.classList.remove("holding");
 }
 
 function stopHolding() {
@@ -1402,7 +1264,6 @@ function handlePointerMove(event) {
   if (event.pointerType === "touch") {
     return;
   }
-  enableCustomCursor(event);
   state.pointer.x = event.clientX;
   state.pointer.y = event.clientY;
 }
@@ -1505,24 +1366,13 @@ function tick(timestamp) {
 }
 
 function updateCursor(dt) {
-  if (!cursor) return;
-  cursor.dataset.x = state.pointer.x;
-  cursor.dataset.y = state.pointer.y;
-  const prevX = parseFloat(cursor.dataset.prevPointerX ?? state.pointer.x);
-  const prevY = parseFloat(cursor.dataset.prevPointerY ?? state.pointer.y);
+  const prevX = state.prevPointer.x;
+  const prevY = state.prevPointer.y;
   const distance = Math.hypot(state.pointer.x - prevX, state.pointer.y - prevY);
   state.cursorSpeed = distance / Math.max(dt, 16);
-  cursor.dataset.prevPointerX = state.pointer.x;
-  cursor.dataset.prevPointerY = state.pointer.y;
-  if (!customCursorEnabled) {
-    return;
-  }
+  state.prevPointer.x = state.pointer.x;
+  state.prevPointer.y = state.pointer.y;
   state.pointerLag = Math.max(0, state.pointerLag - dt * 0.00025);
-  const jitterX = 0;
-  const jitterY = 0;
-
-  cursor.style.left = `${state.pointer.x + jitterX}px`;
-  cursor.style.top = `${state.pointer.y + jitterY}px`;
 }
 
 function updateZones(dt) {
@@ -1708,15 +1558,12 @@ function updateThreat(dt) {
   const body = document.body;
   if (state.threat < 25) {
     body.classList.remove("threat-medium", "threat-high");
-    cursor.classList.remove("stressed");
   } else if (state.threat < 55) {
     body.classList.add("threat-medium");
     body.classList.remove("threat-high");
-    cursor.classList.remove("stressed");
   } else {
     body.classList.add("threat-high");
     body.classList.remove("threat-medium");
-    cursor.classList.add("stressed");
   }
 }
 
@@ -2040,8 +1887,8 @@ function updateFlashlight(dt) {
       : 0;
   const rawRadius = Math.max(minRadius, state.flashlight.radius + flickerOffset);
 
-  const displayedX = parseFloat(cursor.dataset.x || state.pointer.x) + state.overlayOffset.x;
-  const displayedY = parseFloat(cursor.dataset.y || state.pointer.y) + state.overlayOffset.y;
+  const displayedX = state.pointer.x + state.overlayOffset.x;
+  const displayedY = state.pointer.y + state.overlayOffset.y;
   const stress = (100 - state.flashlight.stability) / 100;
   const smoothing = clamp(0.18 - stress * 0.1 - state.flashlight.lag, 0.03, 0.18);
   state.flashlight.position.x += (displayedX - state.flashlight.position.x) * smoothing;
