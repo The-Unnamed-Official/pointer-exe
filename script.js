@@ -1,5 +1,7 @@
 const menu = document.querySelector('#menu');
-const menuButtons = menu.querySelectorAll('button');
+const menuOpenButton = menu?.querySelector('#menu-open');
+const menuPreferencesButton = menu?.querySelector('#menu-preferences');
+const menuEraseButton = menu?.querySelector('#menu-erase');
 const hashDisplay = menu.querySelector('[data-animate-hash]');
 const game = document.querySelector('#game');
 const cursor = document.querySelector('#cursor');
@@ -260,6 +262,7 @@ function showGame() {
   gameStarted = true;
   menu.classList.add('hidden');
   game.classList.remove('hidden');
+  document.body.classList.remove('menu-visible');
   initAudio();
   loadMap(0);
 }
@@ -904,17 +907,16 @@ function revealCredits() {
   }, 10);
 }
 
-menuButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    const action = button.dataset.action;
-    if (action === 'open') {
-      showGame();
-    } else if (action === 'preferences') {
-      openPreferences();
-    } else if (action === 'erase') {
-      cueWhisper('erase denied');
-    }
-  });
+menuOpenButton?.addEventListener('click', () => {
+  showGame();
+});
+
+menuPreferencesButton?.addEventListener('click', () => {
+  openPreferences();
+});
+
+menuEraseButton?.addEventListener('click', () => {
+  cueWhisper('erase denied');
 });
 
 animateHash();
