@@ -254,6 +254,24 @@ main#realm {
   display: none;
 }
 
+.menu-option.danger {
+  color: var(--danger);
+}
+
+.menu-option.danger::after {
+  background: var(--danger);
+}
+
+.menu-option.danger:focus-visible,
+.menu-option.danger:hover {
+  color: var(--danger);
+}
+
+.menu-option.danger:focus-visible::after,
+.menu-option.danger:hover::after {
+  background: var(--danger);
+}
+
 .menu-option {
   background: transparent;
   border: 0;
@@ -285,6 +303,64 @@ main#realm {
 .menu-option:focus-visible::after,
 .menu-option:hover::after {
   transform: scaleX(1);
+}
+
+dialog {
+  background: rgba(4, 8, 10, 0.95);
+  color: var(--fg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  padding: 2.4rem 2.8rem;
+  max-width: min(520px, 82vw);
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  box-shadow: 0 0 38px rgba(0, 0, 0, 0.6);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+dialog h2 {
+  margin: 0 0 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 1.6rem;
+}
+
+.dialog-body p {
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: flex-end;
+}
+
+.dialog-actions .menu-option {
+  margin: 0;
+  padding: 0.4rem 0;
+  text-align: center;
+  min-width: 140px;
+}
+
+.dialog-actions .menu-option.secondary {
+  align-self: center;
 }
 
 #screen {

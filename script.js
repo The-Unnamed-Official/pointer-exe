@@ -19,6 +19,8 @@ const inventoryList = document.getElementById("inventory-list");
 const storyLog = document.getElementById("story-log");
 const settingsPanel = document.getElementById("settings-panel");
 const customCursorToggle = document.getElementById("custom-cursor-toggle");
+const introDialog = document.getElementById("intro-dialog");
+const eraseConfirmDialog = document.getElementById("erase-confirm-dialog");
 
 const fragmentTemplate = document.getElementById("fragment-template");
 const anomalyTemplate = document.getElementById("anomaly-template");
@@ -560,6 +562,7 @@ function deactivateCustomCursor() {
 function openSettings() {
   if (!settingsPanel || !menu) return;
   settingsPanel.hidden = false;
+  settingsPanel.removeAttribute("hidden");
   settingsPanel.setAttribute("aria-hidden", "false");
   menu.classList.add("settings-visible");
   settingsToggleButton?.setAttribute("aria-expanded", "true");
@@ -572,8 +575,73 @@ function closeSettings() {
   if (!settingsPanel || !menu) return;
   settingsPanel.hidden = true;
   settingsPanel.setAttribute("aria-hidden", "true");
+  settingsPanel.setAttribute("hidden", "");
   menu.classList.remove("settings-visible");
   settingsToggleButton?.setAttribute("aria-expanded", "false");
+}
+
+function openDialog(dialog) {
+  if (!dialog) return;
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+  } else {
+    dialog.setAttribute("open", "true");
+  }
+}
+
+function closeDialog(dialog) {
+  if (!dialog) return;
+  if (typeof dialog.close === "function") {
+    dialog.close();
+  } else {
+    dialog.removeAttribute("open");
+  }
+}
+
+function openIntro() {
+  if (state.running) return;
+  if (!introDialog) {
+    startRun();
+    return;
+  }
+  openDialog(introDialog);
+  const primary = introDialog.querySelector("[data-action='begin-run']");
+  primary?.focus();
+}
+
+function closeIntro(startGame = false) {
+  if (introDialog) {
+    closeDialog(introDialog);
+  }
+  if (startGame) {
+    startRun();
+  }
+}
+
+function openEraseConfirm() {
+  if (!eraseConfirmDialog) return;
+  openDialog(eraseConfirmDialog);
+  const cancelButton = eraseConfirmDialog.querySelector("[data-action='cancel-erase']");
+  cancelButton?.focus();
+}
+
+function closeEraseConfirm() {
+  if (!eraseConfirmDialog) return;
+  closeDialog(eraseConfirmDialog);
+}
+
+function performErase() {
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.removeItem(CUSTOM_CURSOR_PREF_KEY);
+    } catch (error) {
+      /* ignore storage errors */
+    }
+  }
+  closeEraseConfirm();
+  setTimeout(() => {
+    location.reload();
+  }, 200);
 }
 
 function init() {
@@ -616,10 +684,18 @@ function bindMenu() {
   settingsToggleButton = menu.querySelector("[data-action='settings']");
   const eraseButton = menu.querySelector("[data-action='erase']");
   const closeSettingsButton = menu.querySelector("[data-action='close-settings']");
+  const introBeginButton = introDialog?.querySelector("[data-action='begin-run']");
+  const introSkipButton = introDialog?.querySelector("[data-action='skip-intro']");
+  const confirmEraseButton = eraseConfirmDialog?.querySelector(
+    "[data-action='confirm-erase']"
+  );
+  const cancelEraseButton = eraseConfirmDialog?.querySelector(
+    "[data-action='cancel-erase']"
+  );
 
   startButton?.addEventListener("click", () => {
     closeSettings();
-    startRun();
+    openIntro();
   });
 
   settingsToggleButton?.addEventListener("click", () => {
@@ -635,11 +711,28 @@ function bindMenu() {
     if (eraseButton) {
       glitchMenu(eraseButton);
     }
+    setTimeout(() => {
+      openEraseConfirm();
+    }, 220);
   });
 
   closeSettingsButton?.addEventListener("click", () => {
     closeSettings();
     settingsToggleButton?.focus();
+  });
+
+  introBeginButton?.addEventListener("click", () => closeIntro(true));
+  introSkipButton?.addEventListener("click", () => closeIntro(true));
+  introDialog?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeIntro(true);
+  });
+
+  confirmEraseButton?.addEventListener("click", performErase);
+  cancelEraseButton?.addEventListener("click", () => closeEraseConfirm());
+  eraseConfirmDialog?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeEraseConfirm();
   });
 
   customCursorToggle?.addEventListener("change", (event) => {
@@ -679,6 +772,7 @@ function bindFlashlightControls() {
 }
 
 function startRun(options = {}) {
+  if (state.running) return;
   closeSettings();
   menu.classList.add("fade-out");
   setTimeout(() => {
