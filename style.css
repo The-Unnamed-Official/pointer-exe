@@ -26,7 +26,6 @@ body {
   color: var(--fg);
   font-family: var(--font);
   letter-spacing: 0.08em;
-  cursor: none;
 }
 
 body {
@@ -35,6 +34,18 @@ body {
   align-items: center;
   justify-content: center;
   transition: background 0.6s ease;
+}
+
+body.custom-cursor-ready {
+  cursor: none;
+}
+
+body:not(.custom-cursor-ready) #cursor {
+  display: none;
+}
+
+body.custom-cursor-ready #cursor {
+  display: block;
 }
 
 #noise-layer,
