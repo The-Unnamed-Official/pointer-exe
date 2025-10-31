@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pointer.exe</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="noise-layer"></div>
+    <div id="scanline-layer"></div>
+    <main id="realm" aria-live="polite">
+      <section id="menu" class="diegetic-panel" aria-hidden="true">
+        <header>
+          <h1>pointer.exe</h1>
+          <p class="subtitle">self-observing pointer interface</p>
+        </header>
+        <nav>
+          <button class="menu-option" data-action="open">open</button>
+          <button class="menu-option" data-action="audit">audit mode</button>
+          <button class="menu-option" data-action="erase">erase</button>
+        </nav>
+        <footer>
+          <p>hold & drag to persuade the screen</p>
+        </footer>
+      </section>
+
+      <div id="screen" role="application" aria-label="pointer.exe realm">
+        <div id="ambient-text" aria-hidden="true"></div>
+        <div id="lore-feed" role="log" aria-live="polite"></div>
+        <div id="fragments" aria-hidden="true"></div>
+        <div id="anomalies" aria-hidden="true"></div>
+        <div id="anchors" aria-hidden="true"></div>
+        <div id="edges" aria-hidden="true">
+          <div class="edge edge-top"></div>
+          <div class="edge edge-right"></div>
+          <div class="edge edge-bottom"></div>
+          <div class="edge edge-left"></div>
+        </div>
+        <div id="edge-warning" aria-hidden="true"></div>
+        <div id="door-pattern" aria-hidden="true">
+          <div class="pattern-lines"></div>
+          <div class="pattern-glow"></div>
+        </div>
+        <div id="whispers" aria-live="polite"></div>
+      </div>
+    </main>
+
+    <div id="cursor" role="presentation" aria-hidden="true">
+      <div class="cursor-ring"></div>
+      <div class="cursor-core"></div>
+    </div>
+
+    <div id="flashlight-overlay" aria-hidden="true"></div>
+
+    <dialog id="pause-overlay">
+      <h2>breathe</h2>
+      <p>the interface is paused. steady your vector.</p>
+      <button data-action="resume">resume</button>
+    </dialog>
+
+    <template id="fragment-template">
+      <article class="fragment" tabindex="0">
+        <div class="fragment-core"></div>
+        <div class="fragment-progress"></div>
+        <p class="fragment-text" aria-hidden="true"></p>
+      </article>
+    </template>
+
+    <template id="anomaly-template">
+      <div class="anomaly" aria-hidden="true">
+        <div class="anomaly-core"></div>
+      </div>
+    </template>
+
+    <template id="anchor-template">
+      <div class="anchor" aria-hidden="true">
+        <div class="anchor-ring"></div>
+        <div class="anchor-core"></div>
+      </div>
+    </template>
+
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
