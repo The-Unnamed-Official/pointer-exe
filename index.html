@@ -16,16 +16,48 @@
     <div id="noise-layer"></div>
     <div id="scanline-layer"></div>
     <main id="realm" aria-live="polite">
-      <section id="menu" class="diegetic-panel" aria-hidden="true">
+      <section id="menu" class="diegetic-panel" aria-hidden="false">
         <header>
           <h1>pointer.exe</h1>
           <p class="subtitle">self-observing pointer interface</p>
         </header>
-        <nav>
-          <button class="menu-option" data-action="open">open</button>
-          <button class="menu-option" data-action="audit">audit mode</button>
-          <button class="menu-option" data-action="erase">erase</button>
-        </nav>
+        <div class="menu-body">
+          <nav class="menu-actions" aria-label="main menu">
+            <button class="menu-option" data-action="start">start</button>
+            <button
+              class="menu-option"
+              data-action="settings"
+              aria-controls="settings-panel"
+              aria-expanded="false"
+            >
+              settings
+            </button>
+            <button class="menu-option" data-action="erase">erase data</button>
+          </nav>
+          <section
+            id="settings-panel"
+            class="menu-settings"
+            aria-hidden="true"
+            hidden
+          >
+            <h2>settings</h2>
+            <div class="settings-group">
+              <label class="setting-toggle">
+                <input type="checkbox" id="custom-cursor-toggle" />
+                <span class="toggle-visual" aria-hidden="true">
+                  <span class="toggle-thumb"></span>
+                </span>
+                <span class="toggle-label">disable custom cursor</span>
+              </label>
+              <p class="setting-hint">
+                use the system pointer when this is enabled.
+              </p>
+            </div>
+            <button class="menu-option secondary" data-action="close-settings">
+              close settings
+            </button>
+          </section>
+        </div>
         <footer>
           <p>hold & drag to persuade the screen</p>
         </footer>

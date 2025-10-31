@@ -17,6 +17,8 @@ const levelObjectiveEl = document.getElementById("level-objective");
 const mapGrid = document.getElementById("map-grid");
 const inventoryList = document.getElementById("inventory-list");
 const storyLog = document.getElementById("story-log");
+const settingsPanel = document.getElementById("settings-panel");
+const customCursorToggle = document.getElementById("custom-cursor-toggle");
 
 const fragmentTemplate = document.getElementById("fragment-template");
 const anomalyTemplate = document.getElementById("anomaly-template");
@@ -30,6 +32,10 @@ const supportsCustomCursor =
 
 const precisePointerTypes = new Set(["mouse", "pen", "unknown"]);
 let customCursorEnabled = false;
+let customCursorDisabled = false;
+let settingsToggleButton = null;
+
+const CUSTOM_CURSOR_PREF_KEY = "pointerexe.disableCustomCursor";
 
 const whisperLibrary = {
   calm: [
@@ -492,7 +498,86 @@ const state = {
 
 const zoneTemperaments = ["calm", "watchful", "hostile"];
 
+function loadPreferences() {
+  if (!supportsCustomCursor) {
+    customCursorDisabled = true;
+    if (customCursorToggle) {
+      customCursorToggle.checked = true;
+      customCursorToggle.disabled = true;
+    }
+    applyCustomCursorPreference();
+    return;
+  }
+  try {
+    const stored = localStorage.getItem(CUSTOM_CURSOR_PREF_KEY);
+    customCursorDisabled = stored === "true";
+  } catch (error) {
+    customCursorDisabled = false;
+  }
+  if (customCursorToggle) {
+    customCursorToggle.checked = customCursorDisabled;
+  }
+  applyCustomCursorPreference();
+}
+
+function setCustomCursorDisabled(disabled) {
+  customCursorDisabled = disabled;
+  if (customCursorToggle && customCursorToggle.checked !== disabled) {
+    customCursorToggle.checked = disabled;
+  }
+  try {
+    localStorage.setItem(CUSTOM_CURSOR_PREF_KEY, disabled ? "true" : "false");
+  } catch (error) {
+    // ignore storage errors
+  }
+  applyCustomCursorPreference();
+  if (!disabled) {
+    enableCustomCursor();
+  }
+}
+
+function applyCustomCursorPreference() {
+  if (customCursorDisabled) {
+    deactivateCustomCursor();
+    return;
+  }
+  if (cursor) {
+    cursor.dataset.prevPointerX = state.pointer.x;
+    cursor.dataset.prevPointerY = state.pointer.y;
+  }
+}
+
+function deactivateCustomCursor() {
+  customCursorEnabled = false;
+  document.body.classList.remove("custom-cursor-ready");
+  if (cursor) {
+    cursor.style.opacity = "0";
+    cursor.dataset.prevPointerX = state.pointer.x;
+    cursor.dataset.prevPointerY = state.pointer.y;
+  }
+}
+
+function openSettings() {
+  if (!settingsPanel || !menu) return;
+  settingsPanel.hidden = false;
+  settingsPanel.setAttribute("aria-hidden", "false");
+  menu.classList.add("settings-visible");
+  settingsToggleButton?.setAttribute("aria-expanded", "true");
+  if (customCursorToggle && !customCursorToggle.disabled) {
+    customCursorToggle.focus();
+  }
+}
+
+function closeSettings() {
+  if (!settingsPanel || !menu) return;
+  settingsPanel.hidden = true;
+  settingsPanel.setAttribute("aria-hidden", "true");
+  menu.classList.remove("settings-visible");
+  settingsToggleButton?.setAttribute("aria-expanded", "false");
+}
+
 function init() {
+  loadPreferences();
   bindMenu();
   bindPause();
   bindFlashlightControls();
@@ -526,17 +611,39 @@ function init() {
 }
 
 function bindMenu() {
-  menu.querySelectorAll(".menu-option").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const action = btn.dataset.action;
-      if (action === "open") {
-        startRun();
-      } else if (action === "audit") {
-        startRun({ audit: true });
-      } else if (action === "erase") {
-        glitchMenu(btn);
-      }
-    });
+  if (!menu) return;
+  const startButton = menu.querySelector("[data-action='start']");
+  settingsToggleButton = menu.querySelector("[data-action='settings']");
+  const eraseButton = menu.querySelector("[data-action='erase']");
+  const closeSettingsButton = menu.querySelector("[data-action='close-settings']");
+
+  startButton?.addEventListener("click", () => {
+    closeSettings();
+    startRun();
+  });
+
+  settingsToggleButton?.addEventListener("click", () => {
+    if (settingsPanel?.hidden) {
+      openSettings();
+    } else {
+      closeSettings();
+    }
+  });
+
+  eraseButton?.addEventListener("click", () => {
+    closeSettings();
+    if (eraseButton) {
+      glitchMenu(eraseButton);
+    }
+  });
+
+  closeSettingsButton?.addEventListener("click", () => {
+    closeSettings();
+    settingsToggleButton?.focus();
+  });
+
+  customCursorToggle?.addEventListener("change", (event) => {
+    setCustomCursorDisabled(event.target.checked);
   });
 }
 
@@ -572,6 +679,7 @@ function bindFlashlightControls() {
 }
 
 function startRun(options = {}) {
+  closeSettings();
   menu.classList.add("fade-out");
   setTimeout(() => {
     menu.hidden = true;
@@ -1147,19 +1255,23 @@ function handlePointerLeave() {
 }
 
 function handlePointerEnter(event) {
-  if (!supportsCustomCursor || !cursor) return;
+  if (!supportsCustomCursor || !cursor || customCursorDisabled) return;
   if (!event || event.pointerType !== "touch") {
     cursor.style.opacity = "1";
   }
 }
 
 function handleWindowFocus() {
-  if (!customCursorEnabled || !cursor) return;
+  if (!customCursorEnabled || !cursor || customCursorDisabled) return;
   cursor.style.opacity = "1";
 }
 
 function enableCustomCursor(event) {
   if (!supportsCustomCursor || !cursor || customCursorEnabled) return;
+  if (customCursorDisabled) {
+    deactivateCustomCursor();
+    return;
+  }
   if (event?.pointerType && event.pointerType !== "unknown" && !precisePointerTypes.has(event.pointerType)) {
     return;
   }
@@ -1300,27 +1412,23 @@ function tick(timestamp) {
 
 function updateCursor(dt) {
   if (!cursor) return;
-  if (!customCursorEnabled) {
-    cursor.dataset.x = state.pointer.x;
-    cursor.dataset.y = state.pointer.y;
-    state.cursorSpeed = 0;
-    return;
-  }
-  state.pointerLag = Math.max(0, state.pointerLag - dt * 0.00025);
-  const jitterX = clamp(state.overlayOffset.x, -48, 48);
-  const jitterY = clamp(state.overlayOffset.y, -48, 48);
-
   cursor.dataset.x = state.pointer.x;
   cursor.dataset.y = state.pointer.y;
-  cursor.style.left = `${state.pointer.x + jitterX}px`;
-  cursor.style.top = `${state.pointer.y + jitterY}px`;
-
   const prevX = parseFloat(cursor.dataset.prevPointerX ?? state.pointer.x);
   const prevY = parseFloat(cursor.dataset.prevPointerY ?? state.pointer.y);
   const distance = Math.hypot(state.pointer.x - prevX, state.pointer.y - prevY);
   state.cursorSpeed = distance / Math.max(dt, 16);
   cursor.dataset.prevPointerX = state.pointer.x;
   cursor.dataset.prevPointerY = state.pointer.y;
+  if (!customCursorEnabled) {
+    return;
+  }
+  state.pointerLag = Math.max(0, state.pointerLag - dt * 0.00025);
+  const jitterX = 0;
+  const jitterY = 0;
+
+  cursor.style.left = `${state.pointer.x + jitterX}px`;
+  cursor.style.top = `${state.pointer.y + jitterY}px`;
 }
 
 function updateZones(dt) {
