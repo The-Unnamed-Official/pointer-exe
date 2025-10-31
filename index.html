@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pointer.exe</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="menu" class="pane visible">
+    <div class="pane-content">
+      <header>
+        <span class="label">file</span>
+        <span class="value">pointer.exe</span>
+      </header>
+      <section class="meta">
+        <div><span class="label">size</span><span class="value">3.7 mb (anomalous)</span></div>
+        <div><span class="label">origin</span><span class="value">/usr/dev/null</span></div>
+        <div><span class="label">hash</span><span class="value" data-animate-hash>0x0000-FFFF</span></div>
+      </section>
+      <nav>
+        <button data-action="open">open</button>
+        <button data-action="audit">audit</button>
+        <button data-action="erase">erase</button>
+      </nav>
+      <p class="hint">pointer.exe monitors pointer vectors. proceed calmly.</p>
+    </div>
+  </div>
+
+  <main id="game" class="hidden">
+    <div class="background">
+      <div class="grain"></div>
+      <div class="scanlines"></div>
+      <div class="static"></div>
+    </div>
+    <div id="threat-veil"></div>
+    <div id="whisper"></div>
+
+    <div class="zone-overlay" data-edge="north"><span>ACCESS VECTOR // HOLD STEADY</span></div>
+    <div class="zone-overlay" data-edge="south"><span>EDGE HOSTILITY RISING</span></div>
+    <div class="zone-overlay" data-edge="east"><span>CTRL BOUNDARY</span></div>
+    <div class="zone-overlay" data-edge="west"><span>SYS BORDER : BREATHES</span></div>
+
+    <div id="fragments"></div>
+    <div id="anomalies"></div>
+    <div id="safe-nodes"></div>
+    <div id="door-pattern" class="hidden">
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="ring"></div>
+    </div>
+  </main>
+
+  <div id="cursor" data-press="false" data-threat="0">
+    <div class="outer"></div>
+    <div class="inner"></div>
+  </div>
+
+  <div id="options" class="pane hidden">
+    <div class="pane-content">
+      <header>
+        <span class="label">stability options</span>
+      </header>
+      <label><input type="checkbox" id="reduced-motion" /> reduced motion</label>
+      <label><input type="checkbox" id="high-contrast" /> high contrast</label>
+      <label><input type="checkbox" id="no-jump-cuts" /> no jump cuts</label>
+      <label><input type="checkbox" id="subtitles" /> whisper transcription</label>
+      <label><input type="checkbox" id="anchor-aid" /> enlarged anchors</label>
+      <button data-action="resume">resume</button>
+    </div>
+  </div>
+
+  <div id="lore-pane" class="pane hidden">
+    <div class="pane-content">
+      <header>
+        <span class="label">fragment log</span>
+        <button class="close" data-action="close-lore">✕</button>
+      </header>
+      <pre id="lore-text"></pre>
+    </div>
+  </div>
+
+  <script src="script.js" type="module"></script>
+</body>
+</html>
