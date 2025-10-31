@@ -16,11 +16,10 @@ const levelObjectiveEl = document.getElementById("level-objective");
 const mapGrid = document.getElementById("map-grid");
 const inventoryList = document.getElementById("inventory-list");
 const storyLog = document.getElementById("story-log");
-const settingsPanel = document.getElementById("settings-panel");
+const preferencesPanel = document.getElementById("preferences-panel");
 const introDialog = document.getElementById("intro-dialog");
 const eraseConfirmDialog = document.getElementById("erase-confirm-dialog");
-const auditToggle = document.getElementById("setting-audit-mode");
-const introToggle = document.getElementById("setting-show-intro");
+const glitchField = document.getElementById("glitch-field");
 
 const fragmentTemplate = document.getElementById("fragment-template");
 const anomalyTemplate = document.getElementById("anomaly-template");
@@ -28,8 +27,9 @@ const anchorTemplate = document.getElementById("anchor-template");
 
 const HOLD_TIME = 3200; // ms required to decrypt a fragment
 
-let settingsToggleButton = null;
+let preferencesToggleButton = null;
 let pendingStartOptions = null;
+let glitchInterval = null;
 
 const whisperLibrary = {
   calm: [
@@ -493,25 +493,103 @@ const state = {
 
 const zoneTemperaments = ["calm", "watchful", "hostile"];
 
-function openSettings() {
-  if (!settingsPanel || !menu) return;
-  settingsPanel.hidden = false;
-  settingsPanel.removeAttribute("hidden");
-  settingsPanel.setAttribute("aria-hidden", "false");
-  menu.classList.add("settings-visible");
-  if (settingsToggleButton) {
-    settingsToggleButton.setAttribute("aria-expanded", "true");
+function openPreferences() {
+  if (!preferencesPanel || !menu) return;
+  preferencesPanel.hidden = false;
+  preferencesPanel.removeAttribute("hidden");
+  preferencesPanel.setAttribute("aria-hidden", "false");
+  menu.classList.add("preferences-open");
+  if (preferencesToggleButton) {
+    preferencesToggleButton.setAttribute("aria-expanded", "true");
   }
 }
 
-function closeSettings() {
-  if (!settingsPanel || !menu) return;
-  settingsPanel.hidden = true;
-  settingsPanel.setAttribute("aria-hidden", "true");
-  settingsPanel.setAttribute("hidden", "");
-  menu.classList.remove("settings-visible");
-  if (settingsToggleButton) {
-    settingsToggleButton.setAttribute("aria-expanded", "false");
+function closePreferences() {
+  if (!preferencesPanel || !menu) return;
+  preferencesPanel.hidden = true;
+  preferencesPanel.setAttribute("aria-hidden", "true");
+  preferencesPanel.setAttribute("hidden", "");
+  menu.classList.remove("preferences-open");
+  if (preferencesToggleButton) {
+    preferencesToggleButton.setAttribute("aria-expanded", "false");
+  }
+}
+
+function fadeMenuForStart() {
+  if (!menu) return;
+  stopGlitchField();
+  if (menu.classList.contains("menu-exiting")) {
+    menu.setAttribute("aria-hidden", "true");
+    return;
+  }
+  menu.classList.add("menu-exiting", "fade-out");
+  const computed = getComputedStyle(menu);
+  const fadeDuration =
+    parseFloat(computed.getPropertyValue("--menu-fade-duration")) || 900;
+  setTimeout(() => {
+    if (menu) {
+      menu.hidden = true;
+    }
+  }, fadeDuration);
+  menu.setAttribute("aria-hidden", "true");
+}
+
+function spawnGlitchSquare() {
+  if (!glitchField) return;
+  const square = document.createElement("span");
+  square.className = "glitch-square";
+  const baseSize = 22 + Math.random() * 42;
+  const aspect = 0.6 + Math.random() * 0.8;
+  square.style.width = `${baseSize.toFixed(2)}px`;
+  square.style.height = `${(baseSize * aspect).toFixed(2)}px`;
+  square.style.left = `${(Math.random() * 100).toFixed(2)}%`;
+  square.style.top = `${(Math.random() * 100).toFixed(2)}%`;
+  const palettes = [
+    ["rgba(255, 77, 115, 0.85)", "rgba(87, 255, 246, 0.65)"],
+    ["rgba(148, 77, 255, 0.8)", "rgba(87, 255, 146, 0.6)"],
+    ["rgba(255, 180, 77, 0.7)", "rgba(87, 255, 246, 0.7)"],
+  ];
+  const colors = palettes[Math.floor(Math.random() * palettes.length)];
+  square.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+  square.style.setProperty(
+    "--glitch-tilt",
+    `${(Math.random() * 24 - 12).toFixed(2)}deg`
+  );
+  square.style.setProperty(
+    "--glitch-shift-x",
+    `${(Math.random() * 50 - 25).toFixed(2)}px`
+  );
+  square.style.setProperty(
+    "--glitch-shift-y",
+    `${(Math.random() * 40 - 20).toFixed(2)}px`
+  );
+  const duration = 1.3 + Math.random() * 1.7;
+  square.style.setProperty("--glitch-duration", `${duration.toFixed(2)}s`);
+  glitchField.appendChild(square);
+  square.addEventListener("animationend", () => square.remove());
+  setTimeout(() => square.remove(), duration * 1000 + 200);
+}
+
+function startGlitchField() {
+  if (!glitchField || glitchInterval) return;
+  for (let i = 0; i < 6; i += 1) {
+    spawnGlitchSquare();
+  }
+  glitchInterval = window.setInterval(() => {
+    spawnGlitchSquare();
+    if (Math.random() > 0.6) {
+      spawnGlitchSquare();
+    }
+  }, 320);
+}
+
+function stopGlitchField() {
+  if (glitchInterval) {
+    clearInterval(glitchInterval);
+    glitchInterval = null;
+  }
+  if (glitchField) {
+    glitchField.innerHTML = "";
   }
 }
 
@@ -589,6 +667,7 @@ function performErase() {
 
 function init() {
   bindMenu();
+  startGlitchField();
   bindPause();
   bindFlashlightControls();
   screen.addEventListener("mousemove", handlePointerMove);
@@ -612,8 +691,8 @@ function init() {
 function bindMenu() {
   if (!menu) return;
   const actionsList = menu.querySelector(".menu-actions");
-  settingsToggleButton = menu.querySelector("[data-command='settings']");
-  const closeSettingsButton = menu.querySelector("[data-command='close-settings']");
+  preferencesToggleButton = menu.querySelector("[data-command='preferences']");
+  const closePreferencesButton = menu.querySelector("[data-command='close-preferences']");
   const introBeginButton = introDialog
     ? introDialog.querySelector("[data-action='begin-run']")
     : null;
@@ -639,9 +718,9 @@ function bindMenu() {
     });
   }
 
-  if (closeSettingsButton) {
-    closeSettingsButton.addEventListener("click", () => {
-      handleMenuCommand("close-settings", closeSettingsButton);
+  if (closePreferencesButton) {
+    closePreferencesButton.addEventListener("click", () => {
+      handleMenuCommand("close-preferences", closePreferencesButton);
     });
   }
 
@@ -678,10 +757,11 @@ function handleMenuCommand(command, button) {
     case "start": {
       if (state.running) return;
       const options = {
-        audit: auditToggle ? auditToggle.checked : false,
+        audit: false,
       };
-      const wantsIntro = Boolean(introToggle && introToggle.checked && introDialog);
-      closeSettings();
+      fadeMenuForStart();
+      closePreferences();
+      const wantsIntro = Boolean(introDialog);
       if (wantsIntro) {
         pendingStartOptions = options;
         openIntro();
@@ -690,29 +770,19 @@ function handleMenuCommand(command, button) {
       }
       break;
     }
-    case "settings": {
-      if (!settingsPanel) return;
-      if (settingsPanel.hidden) {
-        openSettings();
+    case "preferences": {
+      if (!preferencesPanel) return;
+      if (preferencesPanel.hidden) {
+        openPreferences();
       } else {
-        closeSettings();
+        closePreferences();
       }
       break;
     }
-    case "erase": {
-      closeSettings();
-      if (button) {
-        glitchMenu(button);
-      }
-      setTimeout(() => {
-        openEraseConfirm();
-      }, 220);
-      break;
-    }
-    case "close-settings": {
-      closeSettings();
-      if (settingsToggleButton) {
-        settingsToggleButton.focus();
+    case "close-preferences": {
+      closePreferences();
+      if (preferencesToggleButton) {
+        preferencesToggleButton.focus();
       }
       break;
     }
@@ -754,16 +824,8 @@ function bindFlashlightControls() {
 
 function startRun(options = {}) {
   if (state.running) return;
-  closeSettings();
-  if (menu) {
-    menu.classList.add("menu-exiting", "fade-out");
-    const computed = getComputedStyle(menu);
-    const fadeDuration = parseFloat(computed.getPropertyValue("--menu-fade-duration")) || 900;
-    setTimeout(() => {
-      menu.hidden = true;
-    }, fadeDuration);
-    menu.setAttribute("aria-hidden", "true");
-  }
+  closePreferences();
+  fadeMenuForStart();
   state.running = true;
   state.auditMode = options && typeof options.audit !== "undefined" ? options.audit : false;
   document.body.classList.toggle("audit-mode", state.auditMode);
@@ -2057,23 +2119,6 @@ function emitFlashlightSignal() {
       setTimeout(() => node.remove(), 600);
     }, 2200);
   }
-}
-
-// Soft glitch when Erase is chosen
-function glitchMenu(btn) {
-  btn.classList.add("glitching");
-  let ticks = 0;
-  const interval = setInterval(() => {
-    ticks += 1;
-    btn.style.transform = `translate(${(Math.random() - 0.5) * 4}px, ${(Math.random() - 0.5) * 4}px)`;
-    btn.style.color = Math.random() > 0.5 ? "var(--accent)" : "var(--fg)";
-    if (ticks > 18) {
-      clearInterval(interval);
-      btn.style.transform = "";
-      btn.style.color = "var(--fg)";
-      btn.classList.remove("glitching");
-    }
-  }, 40);
 }
 
 function clamp(value, min, max) {
