@@ -37,6 +37,25 @@
         <div id="fragments" aria-hidden="true"></div>
         <div id="anomalies" aria-hidden="true"></div>
         <div id="anchors" aria-hidden="true"></div>
+        <div id="hud" role="complementary" aria-label="interface status">
+          <section class="hud-section" id="level-hud" aria-live="polite">
+            <h2>level</h2>
+            <p id="level-name">—</p>
+            <p id="level-objective" class="objective">—</p>
+          </section>
+          <section class="hud-section" id="map-hud" aria-live="polite">
+            <h2>map</h2>
+            <ul id="map-grid"></ul>
+          </section>
+          <section class="hud-section" id="inventory-hud" aria-live="polite">
+            <h2>inventory</h2>
+            <ul id="inventory-list"></ul>
+          </section>
+          <section class="hud-section" id="story-hud" aria-live="polite">
+            <h2>lore</h2>
+            <div id="story-log"></div>
+          </section>
+        </div>
         <div id="edges" aria-hidden="true">
           <div class="edge edge-top"></div>
           <div class="edge edge-right"></div>
