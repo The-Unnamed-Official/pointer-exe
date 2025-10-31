@@ -24,6 +24,11 @@ const anchorTemplate = document.getElementById("anchor-template");
 
 const HOLD_TIME = 3200; // ms required to decrypt a fragment
 
+const supportsCustomCursor =
+  typeof window !== "undefined" &&
+  "PointerEvent" in window &&
+  (typeof window.matchMedia !== "function" || window.matchMedia("(any-pointer: fine)").matches);
+
 const whisperLibrary = {
   calm: [
     "ambient checksum nominal",
@@ -496,14 +501,20 @@ function init() {
   document.addEventListener("pointermove", handlePointerMove);
   document.addEventListener("pointerup", handlePointerUp);
   window.addEventListener("resize", rebuildZones);
-  document.addEventListener("mouseleave", () => {
-    cursor.style.opacity = "0";
-  });
-  document.addEventListener("mouseenter", () => {
+  if (supportsCustomCursor) {
+    document.body.classList.add("custom-cursor-ready");
+    document.addEventListener("mouseleave", () => {
+      cursor.style.opacity = "0";
+    });
+    document.addEventListener("mouseenter", () => {
+      cursor.style.opacity = "1";
+    });
+    cursor.style.left = `${state.pointer.x}px`;
+    cursor.style.top = `${state.pointer.y}px`;
     cursor.style.opacity = "1";
-  });
-  cursor.style.left = `${state.pointer.x}px`;
-  cursor.style.top = `${state.pointer.y}px`;
+  } else {
+    cursor.style.display = "none";
+  }
   if (flashlightOverlay) {
     flashlightOverlay.style.setProperty("--x", `${state.pointer.x}px`);
     flashlightOverlay.style.setProperty("--y", `${state.pointer.y}px`);
