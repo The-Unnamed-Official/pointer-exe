@@ -7,7 +7,7 @@
   <title>pointer.exe</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="menu-visible">
   <div id="menu" class="pane visible">
     <div class="pane-content menu-pane">
       <header>
@@ -19,10 +19,10 @@
         <div><span class="label">origin</span><span class="value">/usr/dev/null</span></div>
         <div><span class="label">hash</span><span class="value" data-animate-hash>0x0000-FFFF</span></div>
       </section>
-      <nav>
-        <button data-action="open">open</button>
-        <button data-action="preferences">preferances</button>
-        <button data-action="erase">erase</button>
+      <nav class="menu-actions">
+        <button id="menu-open" class="menu-button" type="button">open</button>
+        <button id="menu-preferences" class="menu-button" type="button">preferances</button>
+        <button id="menu-erase" class="menu-button" type="button">erase</button>
       </nav>
       <article class="menu-lore">
         <header>
