@@ -17,8 +17,13 @@
     <div id="scanline-layer"></div>
     <main id="realm" aria-live="polite">
       <section id="menu" class="diegetic-panel" aria-hidden="false">
-        <header>
-          <h1>pointer.exe</h1>
+        <div class="menu-overlay menu-overlay--glow" aria-hidden="true"></div>
+        <div class="menu-overlay menu-overlay--scan" aria-hidden="true"></div>
+        <div class="menu-overlay menu-overlay--grain" aria-hidden="true"></div>
+        <header class="menu-header">
+          <h1 aria-label="pointer.exe">
+            pointer<span class="title-exe" aria-hidden="true">.exe</span>
+          </h1>
           <p class="subtitle">self-observing pointer interface</p>
         </header>
         <div class="menu-body">
@@ -41,13 +46,37 @@
             hidden
           >
             <h2>settings</h2>
+            <div class="settings-group">
+              <label class="setting-toggle">
+                <input type="checkbox" id="setting-audit-mode" />
+                <span class="toggle-visual" aria-hidden="true">
+                  <span class="toggle-thumb"></span>
+                </span>
+                <span class="toggle-label">audit mode</span>
+              </label>
+              <p class="setting-hint">
+                expands the light radius for testing and exploration.
+              </p>
+            </div>
+            <div class="settings-group">
+              <label class="setting-toggle">
+                <input type="checkbox" id="setting-show-intro" />
+                <span class="toggle-visual" aria-hidden="true">
+                  <span class="toggle-thumb"></span>
+                </span>
+                <span class="toggle-label">show introduction</span>
+              </label>
+              <p class="setting-hint">
+                display the initialization briefing before each run.
+              </p>
+            </div>
             <button class="menu-option secondary" data-action="close-settings">
               close settings
             </button>
           </section>
         </div>
         <footer>
-          <p>hold & drag to persuade the screen</p>
+          <p class="menu-hint">click start to initialize the vault</p>
         </footer>
       </section>
 

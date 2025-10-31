@@ -19,6 +19,8 @@ const storyLog = document.getElementById("story-log");
 const settingsPanel = document.getElementById("settings-panel");
 const introDialog = document.getElementById("intro-dialog");
 const eraseConfirmDialog = document.getElementById("erase-confirm-dialog");
+const auditToggle = document.getElementById("setting-audit-mode");
+const introToggle = document.getElementById("setting-show-intro");
 
 const fragmentTemplate = document.getElementById("fragment-template");
 const anomalyTemplate = document.getElementById("anomaly-template");
@@ -27,6 +29,7 @@ const anchorTemplate = document.getElementById("anchor-template");
 const HOLD_TIME = 3200; // ms required to decrypt a fragment
 
 let settingsToggleButton = null;
+let pendingStartOptions = null;
 
 const whisperLibrary = {
   calm: [
@@ -529,12 +532,20 @@ function closeDialog(dialog) {
 function openIntro() {
   if (state.running) return;
   if (!introDialog) {
-    startRun();
+    startFromMenu(pendingStartOptions ?? {});
     return;
+  }
+  if (!pendingStartOptions) {
+    pendingStartOptions = {};
   }
   openDialog(introDialog);
   const primary = introDialog.querySelector("[data-action='begin-run']");
   primary?.focus();
+}
+
+function startFromMenu(options = {}) {
+  pendingStartOptions = null;
+  startRun(options);
 }
 
 function closeIntro(startGame = false) {
@@ -542,7 +553,10 @@ function closeIntro(startGame = false) {
     closeDialog(introDialog);
   }
   if (startGame) {
-    startRun();
+    const options = pendingStartOptions ?? {};
+    startFromMenu(options);
+  } else {
+    pendingStartOptions = null;
   }
 }
 
@@ -603,8 +617,18 @@ function bindMenu() {
   );
 
   startButton?.addEventListener("click", () => {
+    if (state.running) return;
+    const options = {
+      audit: auditToggle?.checked ?? false,
+    };
+    const wantsIntro = Boolean(introToggle?.checked && introDialog);
     closeSettings();
-    openIntro();
+    if (wantsIntro) {
+      pendingStartOptions = options;
+      openIntro();
+    } else {
+      startFromMenu(options);
+    }
   });
 
   settingsToggleButton?.addEventListener("click", () => {
@@ -680,11 +704,15 @@ function bindFlashlightControls() {
 function startRun(options = {}) {
   if (state.running) return;
   closeSettings();
-  menu.classList.add("fade-out");
-  setTimeout(() => {
-    menu.hidden = true;
-  }, 900);
-  menu.setAttribute("aria-hidden", "true");
+  if (menu) {
+    menu.classList.add("menu-exiting", "fade-out");
+    const computed = getComputedStyle(menu);
+    const fadeDuration = parseFloat(computed.getPropertyValue("--menu-fade-duration")) || 900;
+    setTimeout(() => {
+      menu.hidden = true;
+    }, fadeDuration);
+    menu.setAttribute("aria-hidden", "true");
+  }
   state.running = true;
   state.auditMode = options.audit ?? false;
   document.body.classList.toggle("audit-mode", state.auditMode);
