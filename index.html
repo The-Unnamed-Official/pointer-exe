@@ -116,6 +116,50 @@
       <button data-action="resume">resume</button>
     </dialog>
 
+    <dialog id="intro-dialog" aria-labelledby="intro-title">
+      <h2 id="intro-title">initialization :: drift report</h2>
+      <div class="dialog-body">
+        <p>
+          You wake in the calibration vault with the pointer already fused to your
+          palm. The last memory is of volunteering to anchor the breach while the
+          others sealed the exit behind you.
+        </p>
+        <p>
+          The interface hums with a ghost copy of your intent, waiting for you to
+          reclaim the fragments that prove you still belong to this reality.
+        </p>
+        <p>
+          Stabilize the pointer, map the vault, and keep your signal from being
+          rewritten.
+        </p>
+      </div>
+      <div class="dialog-actions">
+        <button class="menu-option secondary" data-action="skip-intro">
+          skip
+        </button>
+        <button class="menu-option" data-action="begin-run">enter vault</button>
+      </div>
+    </dialog>
+
+    <dialog
+      id="erase-confirm-dialog"
+      aria-labelledby="erase-confirm-title"
+      aria-describedby="erase-confirm-copy"
+    >
+      <h2 id="erase-confirm-title">confirm data purge</h2>
+      <p id="erase-confirm-copy">
+        This will wipe stored preferences and reset the interface. Proceed?
+      </p>
+      <div class="dialog-actions">
+        <button class="menu-option secondary" data-action="cancel-erase">
+          cancel
+        </button>
+        <button class="menu-option danger" data-action="confirm-erase">
+          purge data
+        </button>
+      </div>
+    </dialog>
+
     <template id="fragment-template">
       <article class="fragment" tabindex="0">
         <div class="fragment-core"></div>
