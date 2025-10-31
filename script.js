@@ -26,8 +26,10 @@ const HOLD_TIME = 3200; // ms required to decrypt a fragment
 
 const supportsCustomCursor =
   typeof window !== "undefined" &&
-  "PointerEvent" in window &&
-  (typeof window.matchMedia !== "function" || window.matchMedia("(any-pointer: fine)").matches);
+  "PointerEvent" in window;
+
+const precisePointerTypes = new Set(["mouse", "pen", "unknown"]);
+let customCursorEnabled = false;
 
 const whisperLibrary = {
   calm: [
@@ -501,18 +503,15 @@ function init() {
   document.addEventListener("pointermove", handlePointerMove);
   document.addEventListener("pointerup", handlePointerUp);
   window.addEventListener("resize", rebuildZones);
-  if (supportsCustomCursor) {
-    document.body.classList.add("custom-cursor-ready");
-    document.addEventListener("mouseleave", () => {
-      cursor.style.opacity = "0";
-    });
-    document.addEventListener("mouseenter", () => {
-      cursor.style.opacity = "1";
-    });
+  if (supportsCustomCursor && cursor) {
+    document.addEventListener("mouseleave", handlePointerLeave);
+    document.addEventListener("mouseenter", handlePointerEnter);
+    window.addEventListener("blur", handlePointerLeave);
+    window.addEventListener("focus", handleWindowFocus);
+    cursor.style.opacity = "0";
     cursor.style.left = `${state.pointer.x}px`;
     cursor.style.top = `${state.pointer.y}px`;
-    cursor.style.opacity = "1";
-  } else {
+  } else if (cursor) {
     cursor.style.display = "none";
   }
   if (flashlightOverlay) {
@@ -551,7 +550,11 @@ function bindPause() {
       }
     }
   });
-  pauseOverlay.querySelector("[data-action='resume']").addEventListener("click", resume);
+  if (!pauseOverlay) return;
+  const resumeButton = pauseOverlay.querySelector("[data-action='resume']");
+  if (resumeButton) {
+    resumeButton.addEventListener("click", resume);
+  }
 }
 
 function bindFlashlightControls() {
@@ -640,13 +643,24 @@ function startRun(options = {}) {
 function pause() {
   if (!state.running) return;
   state.paused = true;
-  pauseOverlay.showModal();
+  if (!pauseOverlay) return;
+  if (typeof pauseOverlay.showModal === "function") {
+    pauseOverlay.showModal();
+  } else {
+    pauseOverlay.setAttribute("open", "true");
+  }
 }
 
 function resume() {
   if (!state.paused) return;
   state.paused = false;
-  pauseOverlay.close();
+  if (pauseOverlay) {
+    if (typeof pauseOverlay.close === "function") {
+      pauseOverlay.close();
+    } else {
+      pauseOverlay.removeAttribute("open");
+    }
+  }
   state.lastTimestamp = performance.now();
 }
 
@@ -1127,6 +1141,41 @@ function handlePointerUp() {
   finalizeHold(false);
 }
 
+function handlePointerLeave() {
+  if (!customCursorEnabled || !cursor) return;
+  cursor.style.opacity = "0";
+}
+
+function handlePointerEnter(event) {
+  if (!supportsCustomCursor || !cursor) return;
+  if (!event || event.pointerType !== "touch") {
+    cursor.style.opacity = "1";
+  }
+}
+
+function handleWindowFocus() {
+  if (!customCursorEnabled || !cursor) return;
+  cursor.style.opacity = "1";
+}
+
+function enableCustomCursor(event) {
+  if (!supportsCustomCursor || !cursor || customCursorEnabled) return;
+  if (event?.pointerType && event.pointerType !== "unknown" && !precisePointerTypes.has(event.pointerType)) {
+    return;
+  }
+  customCursorEnabled = true;
+  document.body.classList.add("custom-cursor-ready");
+  const startX = event?.clientX ?? state.pointer.x;
+  const startY = event?.clientY ?? state.pointer.y;
+  cursor.dataset.x = startX;
+  cursor.dataset.y = startY;
+  cursor.dataset.prevPointerX = startX;
+  cursor.dataset.prevPointerY = startY;
+  cursor.style.left = `${startX}px`;
+  cursor.style.top = `${startY}px`;
+  cursor.style.opacity = "1";
+}
+
 function finalizeHold(completed) {
   if (!state.hold.target) return;
   const fragment = state.hold.target;
@@ -1144,6 +1193,10 @@ function stopHolding() {
 }
 
 function handlePointerMove(event) {
+  if (event.pointerType === "touch") {
+    return;
+  }
+  enableCustomCursor(event);
   state.pointer.x = event.clientX;
   state.pointer.y = event.clientY;
 }
@@ -1246,24 +1299,28 @@ function tick(timestamp) {
 }
 
 function updateCursor(dt) {
+  if (!cursor) return;
+  if (!customCursorEnabled) {
+    cursor.dataset.x = state.pointer.x;
+    cursor.dataset.y = state.pointer.y;
+    state.cursorSpeed = 0;
+    return;
+  }
   state.pointerLag = Math.max(0, state.pointerLag - dt * 0.00025);
-  const smoothingBase = 0.16;
-  const smoothing = Math.max(0.04, smoothingBase - state.pointerLag);
-  const currentX = parseFloat(cursor.dataset.x || state.pointer.x);
-  const currentY = parseFloat(cursor.dataset.y || state.pointer.y);
-  const nextX = currentX + (state.pointer.x - currentX) * smoothing;
-  const nextY = currentY + (state.pointer.y - currentY) * smoothing;
-
   const jitterX = clamp(state.overlayOffset.x, -48, 48);
   const jitterY = clamp(state.overlayOffset.y, -48, 48);
 
-  cursor.dataset.x = nextX;
-  cursor.dataset.y = nextY;
-  cursor.style.left = `${nextX + jitterX}px`;
-  cursor.style.top = `${nextY + jitterY}px`;
+  cursor.dataset.x = state.pointer.x;
+  cursor.dataset.y = state.pointer.y;
+  cursor.style.left = `${state.pointer.x + jitterX}px`;
+  cursor.style.top = `${state.pointer.y + jitterY}px`;
 
-  const distance = Math.hypot(nextX - currentX, nextY - currentY);
+  const prevX = parseFloat(cursor.dataset.prevPointerX ?? state.pointer.x);
+  const prevY = parseFloat(cursor.dataset.prevPointerY ?? state.pointer.y);
+  const distance = Math.hypot(state.pointer.x - prevX, state.pointer.y - prevY);
   state.cursorSpeed = distance / Math.max(dt, 16);
+  cursor.dataset.prevPointerX = state.pointer.x;
+  cursor.dataset.prevPointerY = state.pointer.y;
 }
 
 function updateZones(dt) {
