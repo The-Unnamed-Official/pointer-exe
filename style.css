@@ -134,6 +134,126 @@ main#realm {
   opacity: 0.55;
 }
 
+#menu .menu-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-top: 2.5rem;
+  flex: 1;
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-settings {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  transition: opacity 0.3s ease;
+}
+
+.menu-settings[hidden] {
+  display: none;
+}
+
+.menu-settings h2 {
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  position: relative;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.setting-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle-visual {
+  width: 48px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 4px;
+  transition: border 0.3s ease, background 0.3s ease;
+}
+
+.toggle-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 12px rgba(87, 255, 146, 0.45);
+  transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.setting-toggle input:focus-visible + .toggle-visual {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.setting-toggle input:checked + .toggle-visual {
+  border-color: rgba(255, 77, 115, 0.6);
+  background: rgba(255, 77, 115, 0.22);
+}
+
+.setting-toggle input:checked + .toggle-visual .toggle-thumb {
+  transform: translateX(22px);
+  background: rgba(255, 77, 115, 0.75);
+  box-shadow: 0 0 14px rgba(255, 77, 115, 0.5);
+}
+
+.toggle-label {
+  flex: 1;
+}
+
+.setting-hint {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.menu-option.secondary {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  opacity: 0.65;
+}
+
+.menu-option.secondary::after {
+  display: none;
+}
+
 .menu-option {
   background: transparent;
   border: 0;
