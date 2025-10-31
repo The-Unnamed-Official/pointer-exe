@@ -36,18 +36,6 @@ body {
   transition: background 0.6s ease;
 }
 
-body.custom-cursor-ready {
-  cursor: none;
-}
-
-body:not(.custom-cursor-ready) #cursor {
-  display: none;
-}
-
-body.custom-cursor-ready #cursor {
-  display: flex;
-}
-
 #noise-layer,
 #scanline-layer {
   position: fixed;
@@ -930,63 +918,6 @@ body.flashlight-drain .fragment[data-absorb="true"] .fragment-core {
   opacity: 0.3;
 }
 
-#cursor {
-  position: fixed;
-  width: 28px;
-  height: 28px;
-  pointer-events: none;
-  z-index: 10;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.18s ease;
-  will-change: left, top;
-}
-
-.cursor-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.28);
-  box-shadow: 0 0 12px rgba(87, 255, 146, 0.28);
-  transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
-}
-
-.cursor-core {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 0 10px rgba(87, 255, 146, 0.35);
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-}
-
-#cursor.stressed .cursor-ring {
-  border-color: var(--danger);
-  box-shadow: 0 0 16px rgba(255, 77, 115, 0.45);
-  animation: ringJitter 0.3s steps(2, end) infinite;
-}
-
-#cursor.stressed .cursor-core {
-  background: rgba(255, 77, 115, 0.5);
-  box-shadow: 0 0 12px rgba(255, 77, 115, 0.45);
-}
-
-#cursor.holding .cursor-ring {
-  border-color: var(--accent);
-  box-shadow: 0 0 18px rgba(87, 255, 146, 0.55);
-  transform: scale(1.2);
-}
-
-#cursor.holding .cursor-core {
-  transform: scale(0.6);
-  background: rgba(87, 255, 146, 0.8);
-  box-shadow: 0 0 14px rgba(87, 255, 146, 0.6);
-}
-
 #pause-overlay {
   background: rgba(5, 8, 9, 0.92);
   color: var(--fg);
@@ -1110,10 +1041,6 @@ body.threat-high #scanline-layer {
 
 body.threat-high #noise-layer {
   opacity: 0.28;
-}
-
-body.threat-high #cursor .cursor-ring {
-  border-color: rgba(255, 77, 115, 0.7);
 }
 
 body.threat-medium #whispers .whisper.visible {
