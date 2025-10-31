@@ -400,7 +400,8 @@ main#realm {
   pointer-events: none;
   transform: translateX(32px);
   transition: opacity 0.4s ease, transform 0.4s ease;
-  z-index: 3;
+  z-index: 8;
+  box-shadow: -24px 0 48px rgba(0, 0, 0, 0.45);
 }
 
 .preferences-panel[hidden] {
@@ -433,6 +434,10 @@ main#realm {
   opacity: 1;
   pointer-events: auto;
   transform: translateX(0);
+}
+
+.main-menu.preferences-open .menu-content {
+  pointer-events: none;
 }
 
 .main-menu.preferences-open .menu-button[data-command="preferences"] {
