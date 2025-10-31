@@ -200,6 +200,133 @@ main#realm {
   inset: 0;
 }
 
+#hud {
+  position: absolute;
+  inset: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.4rem;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.hud-section {
+  background: rgba(5, 8, 9, 0.52);
+  border: 1px solid rgba(87, 255, 146, 0.16);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.5);
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  min-height: 140px;
+  pointer-events: auto;
+}
+
+.hud-section h2 {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.28em;
+}
+
+.hud-section p,
+.hud-section li,
+.hud-section span {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+}
+
+#level-hud #level-name {
+  font-weight: 500;
+  color: var(--accent);
+}
+
+#level-hud .objective {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+#map-grid,
+#inventory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+#map-grid li,
+#inventory-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.45rem 0.6rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+#map-grid li.visited {
+  border-color: var(--accent);
+  background: rgba(87, 255, 146, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+#map-grid li.map-placeholder {
+  color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.1);
+  font-style: italic;
+}
+
+#map-grid li .map-node-name,
+#inventory-list li .item-name {
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+
+#map-grid li .map-node-detail,
+#inventory-list li .item-desc {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+#inventory-list li.collected {
+  border-color: rgba(87, 255, 146, 0.7);
+  background: rgba(87, 255, 146, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+#inventory-list li.missing .item-name {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+#inventory-list li.missing .item-desc {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+#story-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+#story-log .story-entry {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.7);
+  border-left: 2px solid rgba(255, 255, 255, 0.16);
+  padding-left: 0.6rem;
+}
+
+#story-log .story-entry strong {
+  color: var(--accent);
+}
+
 #anomalies {
   pointer-events: none;
 }

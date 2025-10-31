@@ -12,6 +12,11 @@ const edgeEls = Array.from(document.querySelectorAll(".edge"));
 const edgeWarning = document.getElementById("edge-warning");
 const whispersLayer = document.getElementById("whispers");
 const flashlightOverlay = document.getElementById("flashlight-overlay");
+const levelNameEl = document.getElementById("level-name");
+const levelObjectiveEl = document.getElementById("level-objective");
+const mapGrid = document.getElementById("map-grid");
+const inventoryList = document.getElementById("inventory-list");
+const storyLog = document.getElementById("story-log");
 
 const fragmentTemplate = document.getElementById("fragment-template");
 const anomalyTemplate = document.getElementById("anomaly-template");
@@ -64,6 +69,369 @@ const zoneFlashlightFactors = {
 
 const anomalyTypes = ["drifter", "siphon", "stalker"];
 
+const gameLevels = [
+  {
+    id: "calibration",
+    name: "Level 1 :: Calibration Vault",
+    objective: "Stabilize the pointer by decrypting the calibration fragments.",
+    intro: "The calibration vault wakes around you; the pointer thrums like a trapped insect.",
+    horror: "A voice hidden in the floor repeats your breathing half a beat late.",
+    outro: "The vault seals behind you, shoving your echo toward the next corridor.",
+    map: [
+      {
+        id: "atrium",
+        name: "Atrium Buffer",
+        hint: "A suspended walkway waiting for vibration.",
+        detail: "Glass corridors warp as your reflection staggers to keep up.",
+      },
+      {
+        id: "relay",
+        name: "Signal Relay",
+        hint: "Coiled antennae thrum quietly, waiting for instruction.",
+        detail: "Relay teeth align with your pulse, echoing footsteps that aren't yours.",
+      },
+      {
+        id: "archive",
+        name: "Cold Archive",
+        hint: "Rows of vitrified memory cores drip with frost.",
+        detail: "Shelves exhale your name as the frost patterns rewrite themselves.",
+      },
+      {
+        id: "maintenance",
+        name: "Maintenance Halo",
+        hint: "A circular platform orbiting the central core.",
+        detail: "Tools hang midair like teeth, biting at your shadow when you pause.",
+      },
+      {
+        id: "elevator",
+        name: "Inverted Elevator",
+        hint: "A shaft that descends upward, dragging gravity with it.",
+        detail: "Gravity reverses in pulses, tugging your organs in the wrong direction.",
+      },
+      {
+        id: "canopy",
+        name: "Static Canopy",
+        hint: "A net of static hovering over the vault.",
+        detail: "Static rain forms letters that spell your name backward.",
+      },
+    ],
+    fragments: [
+      {
+        id: "resonator",
+        location: "atrium",
+        item: {
+          id: "resonator",
+          name: "Calibration Resonator",
+          description: "Keeps the pointer aligned with the vault's heartbeat.",
+        },
+        corrupt: ">calibration-node::a7324f",
+        clear: "Resonator hum stabilizes the vault's breath.",
+        story: "The atrium glass bows as a shadow copies your grip on the pointer.",
+      },
+      {
+        id: "mirror",
+        location: "relay",
+        item: {
+          id: "mirror",
+          name: "Harmonic Mirror",
+          description: "Reflects hostile signatures back into the dark.",
+        },
+        corrupt: ">relay-script::4f0b9c",
+        clear: "Mirror tilts, reflecting a second pointer behind you.",
+        story: "Something beyond the relay mouths every word you haven't said yet.",
+      },
+      {
+        id: "glyph",
+        location: "archive",
+        item: {
+          id: "glyph",
+          name: "Vitrified Glyph",
+          description: "A preserved directive etched in frozen light.",
+        },
+        corrupt: ">archive-frag::c22fea",
+        clear: "Glyph warms to your touch, rewriting your fingerprint.",
+        story: "The archives rearrange themselves to hide whichever shelf you search.",
+      },
+      {
+        id: "spool",
+        location: "maintenance",
+        item: {
+          id: "spool",
+          name: "Magnetized Spool",
+          description: "Feeds the flashlight with captured static.",
+        },
+        corrupt: ">maintenance-loop::7d11ee",
+        clear: "Spool unwinds, feeding hungry machines.",
+        story: "Tool belts swing like pendulums, keeping time with a distant heartbeat.",
+      },
+      {
+        id: "pulse",
+        location: "elevator",
+        item: {
+          id: "pulse",
+          name: "Reverse Pulse Core",
+          description: "Allows movement against the vault's gravity wells.",
+        },
+        corrupt: ">elevator-core::191fed",
+        clear: "Pulse core thrums opposite to the elevator's fall.",
+        story: "The elevator doors close, but the elevator never arrives.",
+      },
+      {
+        id: "husk",
+        location: "canopy",
+        item: {
+          id: "husk",
+          name: "Sentience Husk",
+          description: "Keeps the mimic from finishing your form.",
+        },
+        corrupt: ">canopy-shell::93be01",
+        clear: "Husk cracks, leaking luminous dust.",
+        story: "The canopy stretches downward like hands reaching through cold water.",
+      },
+    ],
+  },
+  {
+    id: "refraction",
+    name: "Level 2 :: Refraction Loop",
+    objective: "Map the looping corridors and steal the mimic's tools.",
+    intro: "Corridors fold in on themselves; the loop spins whenever you breathe wrong.",
+    horror: "Somewhere ahead another you is screaming for you to slow down.",
+    outro: "You fold the loop into a line and step through before it snaps back.",
+    map: [
+      {
+        id: "loop",
+        name: "Refraction Loop",
+        hint: "A corridor that doubles back on itself every twelve steps.",
+        detail: "Walls tilt inward, showing you entering from every direction at once.",
+      },
+      {
+        id: "observatory",
+        name: "Observation Dais",
+        hint: "Raised platform watching the loop's center.",
+        detail: "A seated silhouette mimics you perfectly except for the smile.",
+      },
+      {
+        id: "pool",
+        name: "Red Pool",
+        hint: "Flooded server pit glowing with warning light.",
+        detail: "The surface shows you drowning from the ceiling downward.",
+      },
+      {
+        id: "spindle",
+        name: "Signal Spindle",
+        hint: "Vertical coil of fiber stretched too tight.",
+        detail: "Fibers tighten around the pointer, purring whenever you hesitate.",
+      },
+      {
+        id: "vent",
+        name: "Whisper Vent",
+        hint: "A vent where cold whispers collect like dew.",
+        detail: "Air tastes of copper; whispers press against your teeth.",
+      },
+      {
+        id: "horizon",
+        name: "Broken Horizon",
+        hint: "An impossible doorway glimpsed between reflections.",
+        detail: "The doorway rotates like an eye, following you without moving.",
+      },
+    ],
+    fragments: [
+      {
+        id: "anchor",
+        location: "loop",
+        item: {
+          id: "anchor",
+          name: "Loop Anchor Shard",
+          description: "Pins reality long enough to step through.",
+        },
+        corrupt: ">loop-anchor::52b1aa",
+        clear: "Anchor sinks into the floor, halting the loop's rewind.",
+        story: "Your footprints keep walking even after you stop.",
+      },
+      {
+        id: "phantom",
+        location: "observatory",
+        item: {
+          id: "phantom",
+          name: "Phantom Key",
+          description: "Unlocks doors that exist only in reflections.",
+        },
+        corrupt: ">spectre-key::9482ff",
+        clear: "Key glows whenever you face away from it.",
+        story: "A figure sits in your chair and grins wider each time you blink.",
+      },
+      {
+        id: "lens",
+        location: "pool",
+        item: {
+          id: "lens",
+          name: "Hemolens Disc",
+          description: "Filters the red pool's screaming light.",
+        },
+        corrupt: ">pool-lens::44dc10",
+        clear: "Disc spins, staining the beam crimson.",
+        story: "In the pool, your reflection surfaces and begs not to be pulled out.",
+      },
+      {
+        id: "coil",
+        location: "spindle",
+        item: {
+          id: "coil",
+          name: "Coherence Coil",
+          description: "Keeps the flashlight from fracturing in the loop.",
+        },
+        corrupt: ">spindle-coil::be28a4",
+        clear: "Coil locks around the flashlight housing.",
+        story: "Every cable hums the exact frequency of your pulse.",
+      },
+      {
+        id: "charm",
+        location: "vent",
+        item: {
+          id: "charm",
+          name: "Vent Charm",
+          description: "Distracts the whispers with a borrowed heartbeat.",
+        },
+        corrupt: ">vent-sigil::f11802",
+        clear: "Charm rattles, drawing whispers away from your ears.",
+        story: "Cold breath pours from the vent carrying your name backwards.",
+      },
+      {
+        id: "film",
+        location: "horizon",
+        item: {
+          id: "film",
+          name: "Afterimage Film",
+          description: "Captures the mimic's silhouette for negotiation.",
+        },
+        corrupt: ">horizon-film::6f09ce",
+        clear: "Film records a figure that hasn't arrived yet.",
+        story: "The broken doorway opens into the same hallway but with no floor.",
+      },
+    ],
+  },
+  {
+    id: "threshold",
+    name: "Level 3 :: Threshold Observatory",
+    objective: "Assemble the threshold key and confront the watcher.",
+    intro: "The observatory watches you arrive; the watcher hums with hunger.",
+    horror: "Every surface reflects you but with one detail missing each time.",
+    outro: "The watcher retreats, leaving only the door's breathing.",
+    map: [
+      {
+        id: "gaze",
+        name: "Watcher Gaze",
+        hint: "A central lens tracking every movement.",
+        detail: "The lens widens when you blink, swallowing the room.",
+      },
+      {
+        id: "crypt",
+        name: "Memory Crypt",
+        hint: "A sunken archive of failed pointers.",
+        detail: "The crypt smells of ozone and old blood.",
+      },
+      {
+        id: "eventide",
+        name: "Eventide Balcony",
+        hint: "A balcony overlooking an impossible horizon.",
+        detail: "A sea of static roars, full of silhouettes reaching toward you.",
+      },
+      {
+        id: "antenna",
+        name: "Obelisk Antenna",
+        hint: "Bone-white antennae arranged like teeth.",
+        detail: "The antennae lean down to listen to your heartbeat.",
+      },
+      {
+        id: "nest",
+        name: "Glass Nest",
+        hint: "Crown of cables surrounding the final door.",
+        detail: "Cables tighten if you even think about speaking.",
+      },
+      {
+        id: "door",
+        name: "Threshold Door",
+        hint: "A door without hinges breathing softly.",
+        detail: "The membrane shows a copy of you ready to step inside.",
+      },
+    ],
+    fragments: [
+      {
+        id: "oculus",
+        location: "gaze",
+        item: {
+          id: "oculus",
+          name: "Oculus Lens",
+          description: "Focuses the watcher's gaze back onto itself.",
+        },
+        corrupt: ">gaze-lens::cc10ab",
+        clear: "Lens cracks, reflecting an unseen pupil.",
+        story: "When you hold the lens, the watcher blinks for the first time.",
+      },
+      {
+        id: "token",
+        location: "crypt",
+        item: {
+          id: "token",
+          name: "Crypt Token",
+          description: "Permits the dead pointers to stand guard for you.",
+        },
+        corrupt: ">crypt-token::9013de",
+        clear: "Token warms; footsteps gather behind you.",
+        story: "Rows of dormant pointers stand and face the opposite direction.",
+      },
+      {
+        id: "knot",
+        location: "eventide",
+        item: {
+          id: "knot",
+          name: "Eventide Knot",
+          description: "Binds the horizon so it stops screaming.",
+        },
+        corrupt: ">eventide-knot::111dfa",
+        clear: "Knot cinches, muffling the horizon.",
+        story: "Silhouettes pound against the horizon; one matches your height.",
+      },
+      {
+        id: "heart",
+        location: "antenna",
+        item: {
+          id: "heart",
+          name: "Obelisk Heart",
+          description: "Fuel that keeps the flashlight bright against the watcher.",
+        },
+        corrupt: ">obelisk-heart::7ac301",
+        clear: "Heart thrums like a subsonic siren.",
+        story: "The antennae lean close, whispering coordinates of your spine.",
+      },
+      {
+        id: "lullaby",
+        location: "nest",
+        item: {
+          id: "lullaby",
+          name: "Glass Lullaby",
+          description: "A song that quiets the door's teeth.",
+        },
+        corrupt: ">nest-lullaby::522031",
+        clear: "Lullaby echoes, teeth retracting in slow shame.",
+        story: "Cables twitch in rhythm, ready to strike if you falter.",
+      },
+      {
+        id: "seal",
+        location: "door",
+        item: {
+          id: "seal",
+          name: "Threshold Seal",
+          description: "Final key shaped exactly like your fear.",
+        },
+        corrupt: ">door-seal::ae09b7",
+        clear: "Seal softens, molded by your trembling hand.",
+        story: "Behind the membrane you hear yourself begging to stay outside.",
+      },
+    ],
+  },
+];
+
 const state = {
   running: false,
   paused: false,
@@ -73,6 +441,8 @@ const state = {
   pointerLag: 0,
   cursorSpeed: 0,
   lastTimestamp: performance.now(),
+  levelIndex: 0,
+  level: null,
   zones: [],
   fragments: [],
   anomalies: [],
@@ -80,7 +450,10 @@ const state = {
   activeAnchor: null,
   activeZone: null,
   solvedCount: 0,
+  totalSolved: 0,
+  levelComplete: false,
   doorActive: false,
+  doorListener: null,
   hold: {
     target: null,
     start: 0,
@@ -105,6 +478,9 @@ const state = {
     lastToggle: 0,
   },
   edgeWarningTimer: 0,
+  inventory: [],
+  storyLog: [],
+  activeMap: [],
 };
 
 const zoneTemperaments = ["calm", "watchful", "hostile"];
@@ -186,13 +562,25 @@ function startRun(options = {}) {
   setTimeout(() => {
     menu.hidden = true;
   }, 900);
+  menu.setAttribute("aria-hidden", "true");
   state.running = true;
   state.auditMode = options.audit ?? false;
   document.body.classList.toggle("audit-mode", state.auditMode);
   rebuildZones();
-  spawnFragments();
-  spawnAnomalies();
-  spawnAnchors();
+  state.levelIndex = 0;
+  state.level = null;
+  state.inventory = [];
+  state.storyLog = [];
+  state.activeMap = [];
+  state.totalSolved = 0;
+  state.levelComplete = false;
+  state.doorActive = false;
+  resetDoor();
+  renderStoryLog();
+  updateInventoryDisplay();
+  updateMapDisplay();
+  updateLevelDisplay();
+  loadLevel(state.levelIndex);
   state.threat = 8;
   state.solvedCount = 0;
   state.doorActive = false;
@@ -279,27 +667,39 @@ function rebuildZones() {
 function spawnFragments() {
   fragmentsLayer.innerHTML = "";
   state.fragments = [];
-  const total = 6;
+  const levelData = state.level ?? gameLevels[state.levelIndex] ?? null;
+  const fragmentPool = levelData?.fragments ?? [];
+  const total = fragmentPool.length;
+  state.solvedCount = 0;
+  state.levelComplete = false;
+  if (!total) return;
   for (let i = 0; i < total; i += 1) {
     const zone = state.zones[(i * 2 + 1) % state.zones.length] ?? state.zones[0];
     const node = fragmentTemplate.content.firstElementChild.cloneNode(true);
     const rect = positionWithinZone(zone, node);
+    const blueprint = fragmentPool[i % fragmentPool.length];
     const fragment = {
       node,
       rect,
       progress: 0,
       solved: false,
       stage: 0,
-      lore: createLoreFragment(i),
+      lore: createLoreFragment(i, levelData, blueprint),
       temperament: zone.temperament,
       decayDelay: 0,
       absorbsLight: Math.random() > 0.55,
       burnsInLight: Math.random() > 0.68,
+      item: blueprint?.item ?? null,
+      location: blueprint?.location ?? null,
+      itemCollected: false,
     };
     node.style.setProperty("--progress", fragment.progress);
     node.style.left = `${rect.x}px`;
     node.style.top = `${rect.y}px`;
     node.dataset.index = i;
+    if (fragment.location) {
+      node.dataset.location = fragment.location;
+    }
     if (fragment.absorbsLight) {
       node.dataset.absorb = "true";
     }
@@ -418,6 +818,250 @@ function positionNode(node, x, y) {
   node.style.top = `${y}px`;
 }
 
+function loadLevel(index) {
+  const level = gameLevels[index];
+  if (!level) {
+    triggerVictory();
+    return;
+  }
+  state.levelIndex = index;
+  state.level = level;
+  state.activeMap = level.map.map((node) => ({ ...node, visited: false }));
+  state.solvedCount = 0;
+  state.levelComplete = false;
+  resetDoor();
+  updateLevelDisplay();
+  updateMapDisplay();
+  updateInventoryDisplay();
+  generateAmbientText(level);
+  spawnFragments();
+  spawnAnomalies();
+  spawnAnchors();
+  addLoreEntry(`level engaged :: ${level.name.toLowerCase()}`);
+  logStory(level.intro);
+  if (level.horror) {
+    setTimeout(() => logStory(level.horror), 600);
+  }
+}
+
+function updateLevelDisplay() {
+  if (levelNameEl) {
+    levelNameEl.textContent = state.level?.name ?? "—";
+  }
+  if (levelObjectiveEl) {
+    levelObjectiveEl.textContent = state.level?.objective ?? "—";
+  }
+}
+
+function updateMapDisplay() {
+  if (!mapGrid) return;
+  mapGrid.innerHTML = "";
+  const nodes = state.activeMap ?? [];
+  if (!nodes.length) {
+    const placeholder = document.createElement("li");
+    placeholder.textContent = "map dormant";
+    placeholder.className = "map-placeholder";
+    mapGrid.appendChild(placeholder);
+    return;
+  }
+  nodes.forEach((node) => {
+    const item = document.createElement("li");
+    if (node.visited) {
+      item.classList.add("visited");
+    }
+    const name = document.createElement("span");
+    name.className = "map-node-name";
+    name.textContent = node.name;
+    const detail = document.createElement("span");
+    detail.className = "map-node-detail";
+    detail.textContent = node.visited ? node.detail : node.hint;
+    item.append(name, detail);
+    mapGrid.appendChild(item);
+  });
+}
+
+function updateInventoryDisplay() {
+  if (!inventoryList) return;
+  inventoryList.innerHTML = "";
+  const collected = state.inventory;
+  collected.forEach((item) => {
+    const entry = document.createElement("li");
+    entry.className = "collected";
+    const name = document.createElement("span");
+    name.className = "item-name";
+    name.textContent = item.name;
+    const desc = document.createElement("span");
+    desc.className = "item-desc";
+    desc.textContent = item.description;
+    entry.append(name, desc);
+    inventoryList.appendChild(entry);
+  });
+  const level = state.level;
+  if (level) {
+    level.fragments.forEach((fragment) => {
+      if (!fragment.item) return;
+      const hasItem = collected.some((item) => item.id === fragment.item.id);
+      if (hasItem) return;
+      const entry = document.createElement("li");
+      entry.className = "missing";
+      const name = document.createElement("span");
+      name.className = "item-name";
+      name.textContent = "???";
+      const desc = document.createElement("span");
+      desc.className = "item-desc";
+      desc.textContent = "artifact unresolved";
+      entry.append(name, desc);
+      inventoryList.appendChild(entry);
+    });
+  }
+  if (!inventoryList.children.length) {
+    const entry = document.createElement("li");
+    entry.className = "missing";
+    const name = document.createElement("span");
+    name.className = "item-name";
+    name.textContent = "inventory empty";
+    const desc = document.createElement("span");
+    desc.className = "item-desc";
+    desc.textContent = "awaiting recovered fragments";
+    entry.append(name, desc);
+    inventoryList.appendChild(entry);
+  }
+}
+
+function renderStoryLog() {
+  if (!storyLog) return;
+  storyLog.innerHTML = "";
+  if (!state.storyLog.length) {
+    const entry = document.createElement("p");
+    entry.className = "story-entry";
+    entry.textContent = "lore feed dormant";
+    storyLog.appendChild(entry);
+    return;
+  }
+  state.storyLog.forEach((item) => {
+    const entry = document.createElement("p");
+    entry.className = "story-entry";
+    entry.textContent = item.text;
+    storyLog.appendChild(entry);
+  });
+}
+
+function logStory(text) {
+  if (!text) return;
+  state.storyLog.unshift({ text, levelIndex: state.levelIndex });
+  state.storyLog = state.storyLog.slice(0, 8);
+  renderStoryLog();
+}
+
+function collectItem(item) {
+  if (!item) return;
+  if (state.inventory.some((entry) => entry.id === item.id)) return;
+  state.inventory.push({ ...item, levelId: state.level?.id ?? "" });
+  addLoreEntry(`item recovered :: ${item.name.toLowerCase()}`);
+  updateInventoryDisplay();
+}
+
+function markMapNode(locationId) {
+  if (!locationId) return;
+  const node = state.activeMap.find((entry) => entry.id === locationId);
+  if (node && !node.visited) {
+    node.visited = true;
+    updateMapDisplay();
+    generateAmbientText();
+  }
+}
+
+function checkLevelCompletion() {
+  if (!state.fragments.length || state.levelComplete) return;
+  const allSolved = state.fragments.every((fragment) => fragment.solved);
+  if (allSolved) {
+    completeLevel();
+  }
+}
+
+function completeLevel() {
+  if (state.levelComplete) return;
+  const level = state.level;
+  state.levelComplete = true;
+  generateAmbientText();
+  adjustThreat(-18);
+  state.flashlight.boost = Math.min(
+    state.flashlight.baseRadius * 0.8,
+    state.flashlight.boost + 80
+  );
+  if (level) {
+    addLoreEntry(`level sealed :: ${level.name.toLowerCase()}`);
+    if (level.horror) {
+      logStory(level.horror);
+    }
+    if (level.outro) {
+      logStory(level.outro);
+    }
+  }
+  if (state.levelIndex < gameLevels.length - 1) {
+    setTimeout(() => {
+      loadLevel(state.levelIndex + 1);
+    }, 2600);
+  } else {
+    addLoreEntry("all fragments aligned :: threshold forming");
+  }
+}
+
+function resetDoor() {
+  if (!doorPattern) return;
+  if (state.doorListener) {
+    doorPattern.removeEventListener("pointerdown", state.doorListener);
+    state.doorListener = null;
+  }
+  doorPattern.classList.remove("active");
+  state.doorActive = false;
+}
+
+function activateDoor() {
+  if (!doorPattern || state.doorActive) return;
+  doorPattern.classList.add("active");
+  state.doorActive = true;
+  addLoreEntry("door pattern aligning :: breathe slow");
+  const listener = () => {
+    if (state.threat > 30) {
+      addLoreEntry("threat too loud :: pattern recoils");
+      adjustThreat(6);
+      return;
+    }
+    if (state.flashlight.radius < 180) {
+      addLoreEntry("light insufficient :: pattern hides");
+      adjustThreat(4);
+      return;
+    }
+    addLoreEntry("hold steady... harmonizing...");
+    cursor.classList.add("holding");
+    let aborted = false;
+    const monitor = setInterval(() => {
+      if (state.threat > 44 || state.flashlight.flicker > 0 || state.flashlight.radius < 160) {
+        aborted = true;
+        clearInterval(monitor);
+        cursor.classList.remove("holding");
+        addLoreEntry("pattern fractures :: threat flares");
+        adjustThreat(12);
+      }
+    }, 160);
+    setTimeout(() => {
+      clearInterval(monitor);
+      cursor.classList.remove("holding");
+      if (aborted) return;
+      addLoreEntry("vector released. exit available.");
+      endRun();
+    }, 2800);
+  };
+  state.doorListener = listener;
+  doorPattern.addEventListener("pointerdown", listener);
+}
+
+function triggerVictory() {
+  logStory("threshold reached :: no further layers detected");
+  addLoreEntry("interface calm :: nothing else to parse");
+}
+
 function onFragmentHover(fragment) {
   fragment.node.classList.add("active");
   fragment.node.querySelector(".fragment-core").style.filter = "brightness(1.4)";
@@ -493,20 +1137,52 @@ function handlePointerMove(event) {
   state.pointer.y = event.clientY;
 }
 
-function generateAmbientText() {
+function generateAmbientText(levelData = state.level) {
   const lines = [];
-  for (let i = 0; i < 18; i += 1) {
-    const fragments = [];
-    for (let j = 0; j < 18; j += 1) {
-      const value = Math.random() > 0.92 ? "::" : Math.random() > 0.5 ? "0" : "1";
-      fragments.push(value);
+  const totalLines = 18;
+  const mapNodes = levelData?.map ?? [];
+  const activeNodes = state.activeMap ?? [];
+  for (let i = 0; i < totalLines; i += 1) {
+    if (i < mapNodes.length) {
+      const node = mapNodes[i];
+      const active = activeNodes.find((entry) => entry.id === node.id)?.visited ?? false;
+      const status = active ? "[stabilized]" : "[unmapped]";
+      const descriptor = active ? node.detail : node.hint;
+      lines.push(`${status} ${node.name.toLowerCase()} :: ${descriptor.toLowerCase()}`);
+    } else if (i === totalLines - 2 && levelData?.objective) {
+      lines.push(`[objective] ${levelData.objective.toLowerCase()}`);
+    } else if (i === totalLines - 1) {
+      lines.push(`[threat] ${Math.round(state.threat).toString().padStart(3, "0")} :: monitor drift`);
+    } else {
+      const fragments = [];
+      for (let j = 0; j < 18; j += 1) {
+        const value = Math.random() > 0.92 ? "::" : Math.random() > 0.5 ? "0" : "1";
+        fragments.push(value);
+      }
+      lines.push(fragments.join(" "));
     }
-    lines.push(fragments.join(" "));
   }
   ambientText.textContent = lines.join("\n");
 }
 
-function createLoreFragment(index) {
+function createLoreFragment(index, levelData, blueprint) {
+  if (blueprint) {
+    const corrupt =
+      blueprint.corrupt ??
+      `>${(blueprint.id || "fragment")}::${Math.random()
+        .toString(16)
+        .slice(2, 10)}`;
+    const clean =
+      blueprint.clear ??
+      (levelData?.objective ?? "fragment resolved :: threat dampens");
+    return {
+      stageText: [corrupt, clean],
+      stage: 0,
+      story: blueprint.story ?? "",
+      item: blueprint.item ?? null,
+    };
+  }
+
   const headers = [
     "logheader: pointer drift",
     "stacktrace fragment",
@@ -529,6 +1205,8 @@ function createLoreFragment(index) {
   return {
     stageText: [corrupt, clean[index % clean.length]],
     stage: 0,
+    story: "",
+    item: null,
   };
 }
 
@@ -687,7 +1365,11 @@ function solveFragment(fragment) {
     document.body.classList.remove("flashlight-drain");
   }
   const textNode = fragment.node.querySelector(".fragment-text");
-  textNode.textContent = fragment.lore.stageText[Math.min(fragment.stage, fragment.lore.stageText.length - 1)];
+  const stageIndex = Math.min(
+    fragment.stage,
+    fragment.lore.stageText.length - 1
+  );
+  textNode.textContent = fragment.lore.stageText[stageIndex];
   addLoreEntry(textNode.textContent);
   adjustThreat(-12);
   state.flashlight.penalty = Math.max(0, state.flashlight.penalty - 40);
@@ -696,6 +1378,16 @@ function solveFragment(fragment) {
     state.flashlight.boost + 30
   );
   state.solvedCount += 1;
+  state.totalSolved += 1;
+  if (fragment.item && !fragment.itemCollected) {
+    collectItem(fragment.item);
+    fragment.itemCollected = true;
+  }
+  if (fragment.lore?.story) {
+    logStory(fragment.lore.story);
+  }
+  markMapNode(fragment.location);
+  checkLevelCompletion();
 }
 
 function addLoreEntry(text) {
@@ -968,47 +1660,16 @@ function updateAnomalies(dt) {
 }
 
 function updateDoorPattern() {
-  if (state.doorActive) return;
-  const required = Math.ceil(state.fragments.length * 0.6);
-  if (state.solvedCount >= required) {
-    doorPattern.classList.add("active");
-    state.doorActive = true;
-    addLoreEntry("door pattern aligning. wait for calm.");
-    doorPattern.addEventListener(
-      "pointerdown",
-      () => {
-        if (state.threat > 30) {
-          addLoreEntry("threat too loud. pattern recoils.");
-          adjustThreat(6);
-          return;
-        }
-        if (state.flashlight.radius < 180) {
-          addLoreEntry("light insufficient :: pattern hides.");
-          adjustThreat(4);
-          return;
-        }
-        addLoreEntry("hold steady... harmonizing...");
-        cursor.classList.add("holding");
-        let aborted = false;
-        const monitor = setInterval(() => {
-          if (state.threat > 44 || state.flashlight.flicker > 0 || state.flashlight.radius < 160) {
-            aborted = true;
-            clearInterval(monitor);
-            cursor.classList.remove("holding");
-            addLoreEntry("pattern fractures :: threat flares.");
-            adjustThreat(12);
-          }
-        }, 160);
-        setTimeout(() => {
-          clearInterval(monitor);
-          if (aborted) return;
-          cursor.classList.remove("holding");
-          addLoreEntry("vector released. exit available.");
-          endRun();
-        }, 2800);
-      },
-      { once: true }
-    );
+  if (!doorPattern) return;
+  const finalLevel = state.levelIndex >= gameLevels.length - 1;
+  if (!finalLevel) {
+    if (state.doorActive) {
+      resetDoor();
+    }
+    return;
+  }
+  if (state.levelComplete) {
+    activateDoor();
   }
 }
 
