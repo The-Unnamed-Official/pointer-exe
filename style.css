@@ -27,7 +27,7 @@ body {
   overflow: hidden;
 }
 
-body:not(.custom-cursor-disabled) * {
+body:not(.custom-cursor-disabled):not(.menu-visible) * {
   cursor: none;
 }
 
@@ -38,6 +38,16 @@ body.custom-cursor-disabled {
 body.custom-cursor-disabled #cursor {
   opacity: 0;
   pointer-events: none;
+}
+
+body.menu-visible #cursor {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.menu-visible,
+body.menu-visible * {
+  cursor: auto;
 }
 
 body.custom-cursor-disabled button,
@@ -135,6 +145,17 @@ button:focus {
   width: min(640px, calc(100vw - 4rem));
   display: grid;
   gap: 2rem;
+}
+
+.menu-actions {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}
+
+.menu-button {
+  width: 100%;
+  text-align: left;
 }
 
 .pane-content::before {
