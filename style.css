@@ -277,15 +277,15 @@ main#realm {
 }
 
 .fake-cursor--two {
-  bottom: 6%;
-  right: 8%;
+  bottom: 3%;
+  right: 45%;
   transform: rotate(6deg) scale(0.9);
   animation-delay: 0.6s;
 }
 
 .fake-cursor--three {
   top: 8%;
-  left: 78%;
+  left: 10%;
   transform: rotate(18deg) scale(1.1);
   animation-delay: 1.1s;
 }
