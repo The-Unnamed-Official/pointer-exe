@@ -28,16 +28,21 @@
         </header>
         <div class="menu-body">
           <nav class="menu-actions" aria-label="main menu">
-            <button class="menu-option" data-action="start">start</button>
+            <button class="menu-option" type="button" data-command="start">
+              start
+            </button>
             <button
               class="menu-option"
-              data-action="settings"
+              type="button"
+              data-command="settings"
               aria-controls="settings-panel"
               aria-expanded="false"
             >
               settings
             </button>
-            <button class="menu-option" data-action="erase">erase data</button>
+            <button class="menu-option" type="button" data-command="erase">
+              erase data
+            </button>
           </nav>
           <section
             id="settings-panel"
@@ -70,7 +75,11 @@
                 display the initialization briefing before each run.
               </p>
             </div>
-            <button class="menu-option secondary" data-action="close-settings">
+            <button
+              class="menu-option secondary"
+              type="button"
+              data-command="close-settings"
+            >
               close settings
             </button>
           </section>
