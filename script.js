@@ -520,17 +520,35 @@ function fadeMenuForStart() {
   stopGlitchField();
   if (menu.classList.contains("menu-exiting")) {
     menu.setAttribute("aria-hidden", "true");
+    if (!menu.hidden) {
+      menu.hidden = true;
+    }
     return;
   }
-  menu.classList.add("menu-exiting", "fade-out");
+
+  const handleTransitionEnd = (event) => {
+    if (event.target !== menu || event.propertyName !== "opacity") {
+      return;
+    }
+    menu.hidden = true;
+    menu.removeEventListener("transitionend", handleTransitionEnd);
+  };
+
+  menu.addEventListener("transitionend", handleTransitionEnd);
+
   const computed = getComputedStyle(menu);
   const fadeDuration =
     parseFloat(computed.getPropertyValue("--menu-fade-duration")) || 900;
-  setTimeout(() => {
-    if (menu) {
+
+  window.setTimeout(() => {
+    if (!menu) return;
+    menu.removeEventListener("transitionend", handleTransitionEnd);
+    if (!menu.hidden) {
       menu.hidden = true;
     }
-  }, fadeDuration);
+  }, fadeDuration + 60);
+
+  menu.classList.add("menu-exiting", "fade-out");
   menu.setAttribute("aria-hidden", "true");
 }
 
