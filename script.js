@@ -611,10 +611,9 @@ function init() {
 
 function bindMenu() {
   if (!menu) return;
-  const startButton = menu.querySelector("[data-action='start']");
-  settingsToggleButton = menu.querySelector("[data-action='settings']");
-  const eraseButton = menu.querySelector("[data-action='erase']");
-  const closeSettingsButton = menu.querySelector("[data-action='close-settings']");
+  const actionsList = menu.querySelector(".menu-actions");
+  settingsToggleButton = menu.querySelector("[data-command='settings']");
+  const closeSettingsButton = menu.querySelector("[data-command='close-settings']");
   const introBeginButton = introDialog
     ? introDialog.querySelector("[data-action='begin-run']")
     : null;
@@ -628,49 +627,21 @@ function bindMenu() {
     ? eraseConfirmDialog.querySelector("[data-action='cancel-erase']")
     : null;
 
-  if (startButton) {
-    startButton.addEventListener("click", () => {
-      if (state.running) return;
-      const options = {
-        audit: auditToggle ? auditToggle.checked : false,
-      };
-      const wantsIntro = Boolean(introToggle && introToggle.checked && introDialog);
-      closeSettings();
-      if (wantsIntro) {
-        pendingStartOptions = options;
-        openIntro();
-      } else {
-        startFromMenu(options);
+  if (actionsList) {
+    actionsList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-command]");
+      if (!button || !actionsList.contains(button)) {
+        return;
       }
-    });
-  }
-
-  if (settingsToggleButton) {
-    settingsToggleButton.addEventListener("click", () => {
-      if (settingsPanel && settingsPanel.hidden) {
-        openSettings();
-      } else {
-        closeSettings();
-      }
-    });
-  }
-
-  if (eraseButton) {
-    eraseButton.addEventListener("click", () => {
-      closeSettings();
-      glitchMenu(eraseButton);
-      setTimeout(() => {
-        openEraseConfirm();
-      }, 220);
+      const command = button.dataset.command;
+      if (!command) return;
+      handleMenuCommand(command, button);
     });
   }
 
   if (closeSettingsButton) {
     closeSettingsButton.addEventListener("click", () => {
-      closeSettings();
-      if (settingsToggleButton) {
-        settingsToggleButton.focus();
-      }
+      handleMenuCommand("close-settings", closeSettingsButton);
     });
   }
 
@@ -700,6 +671,54 @@ function bindMenu() {
     });
   }
 
+}
+
+function handleMenuCommand(command, button) {
+  switch (command) {
+    case "start": {
+      if (state.running) return;
+      const options = {
+        audit: auditToggle ? auditToggle.checked : false,
+      };
+      const wantsIntro = Boolean(introToggle && introToggle.checked && introDialog);
+      closeSettings();
+      if (wantsIntro) {
+        pendingStartOptions = options;
+        openIntro();
+      } else {
+        startFromMenu(options);
+      }
+      break;
+    }
+    case "settings": {
+      if (!settingsPanel) return;
+      if (settingsPanel.hidden) {
+        openSettings();
+      } else {
+        closeSettings();
+      }
+      break;
+    }
+    case "erase": {
+      closeSettings();
+      if (button) {
+        glitchMenu(button);
+      }
+      setTimeout(() => {
+        openEraseConfirm();
+      }, 220);
+      break;
+    }
+    case "close-settings": {
+      closeSettings();
+      if (settingsToggleButton) {
+        settingsToggleButton.focus();
+      }
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 function bindPause() {

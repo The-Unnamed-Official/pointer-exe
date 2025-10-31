@@ -227,6 +227,7 @@ main#realm {
   gap: 0.6rem;
   position: relative;
   z-index: 2;
+  align-items: flex-start;
 }
 
 .menu-settings {
@@ -356,6 +357,7 @@ main#realm {
   background: var(--danger);
 }
 
+
 .menu-option {
   background: transparent;
   border: 0;
@@ -367,6 +369,10 @@ main#realm {
   position: relative;
   transition: color 0.3s ease;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  max-width: 100%;
 }
 
 .menu-option::after {
@@ -376,7 +382,7 @@ main#realm {
   height: 1px;
   background: var(--accent);
   transform-origin: left;
-  transform: scaleX(0.1);
+  transform: scaleX(0.18);
   transition: transform 0.3s ease;
 }
 
