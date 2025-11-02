@@ -19,6 +19,92 @@
   user-select: none;
 }
 
+body,
+.modal-content.shortage .modal-body,
+.modal-body,
+.status-line,
+.map-area,
+.fragment-list,
+.challenge-log,
+#shortage-puzzle,
+.shortage-puzzle {
+  scrollbar-color: color-mix(in srgb, var(--accent) 70%, transparent) rgba(6, 12, 14, 0.6);
+  scrollbar-width: thin;
+}
+
+body::-webkit-scrollbar,
+.modal-content.shortage .modal-body::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.status-line::-webkit-scrollbar,
+.map-area::-webkit-scrollbar,
+.fragment-list::-webkit-scrollbar,
+.challenge-log::-webkit-scrollbar,
+#shortage-puzzle::-webkit-scrollbar,
+.shortage-puzzle::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+body::-webkit-scrollbar-track,
+.modal-content.shortage .modal-body::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.status-line::-webkit-scrollbar-track,
+.map-area::-webkit-scrollbar-track,
+.fragment-list::-webkit-scrollbar-track,
+.challenge-log::-webkit-scrollbar-track,
+#shortage-puzzle::-webkit-scrollbar-track,
+.shortage-puzzle::-webkit-scrollbar-track {
+  background: rgba(6, 12, 14, 0.48);
+  border-radius: 999px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.45);
+}
+
+body::-webkit-scrollbar-thumb,
+.modal-content.shortage .modal-body::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.status-line::-webkit-scrollbar-thumb,
+.map-area::-webkit-scrollbar-thumb,
+.fragment-list::-webkit-scrollbar-thumb,
+.challenge-log::-webkit-scrollbar-thumb,
+#shortage-puzzle::-webkit-scrollbar-thumb,
+.shortage-puzzle::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 85%, transparent),
+    color-mix(in srgb, var(--accent) 45%, transparent));
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+body::-webkit-scrollbar-thumb:hover,
+.modal-content.shortage .modal-body::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.status-line::-webkit-scrollbar-thumb:hover,
+.map-area::-webkit-scrollbar-thumb:hover,
+.fragment-list::-webkit-scrollbar-thumb:hover,
+.challenge-log::-webkit-scrollbar-thumb:hover,
+#shortage-puzzle::-webkit-scrollbar-thumb:hover,
+.shortage-puzzle::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 95%, transparent),
+    color-mix(in srgb, var(--accent) 65%, transparent));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.map-area::-webkit-scrollbar,
+.map-area {
+  scrollbar-width: thin;
+}
+.map-area::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: none;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+:focus::-webkit-scrollbar-thumb {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, black);
+}
+
 html,
 body {
   margin: 0;
@@ -74,6 +160,111 @@ body.static-muted .crt-overlay {
   50% {
     opacity: 0.38;
   }
+}
+
+.version-counter {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 1100;
+  pointer-events: none;
+  font-family: 'VT323', monospace;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: rgba(3, 6, 7, 0.62);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  padding: 0.28rem 0.6rem;
+  border-radius: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 10%, transparent);
+  overflow: visible;
+  mix-blend-mode: screen;
+  transition: transform 120ms linear, box-shadow 160ms linear, opacity 160ms linear;
+  opacity: 0.95;
+}
+
+/* main visible text sits on top */
+.version-counter::after {
+  content: attr(data-suffix);
+  display: none; /* used by JS for suffix glitching only if needed */
+}
+
+/* colored offset layers create the glitch look */
+.version-counter::before,
+.version-counter::after {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  content: attr(data-suffix);
+  mix-blend-mode: screen;
+  opacity: 0; /* default invisible; toggled by class during glitching */
+  border-radius: 6px;
+}
+
+/* cyan offset */
+.version-counter::before {
+  color: #9fffe8;
+  transform: translateX(-2px) translateY(-1px);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent);
+  clip-path: inset(0 30% 30% 0);
+  transition: opacity 80ms linear;
+}
+
+/* magenta offset */
+.version-counter::after {
+  color: #ff83d0;
+  transform: translateX(2px) translateY(1px);
+  clip-path: inset(30% 0 0 30%);
+  transition: opacity 80ms linear;
+}
+
+/* occasional stronger flash */
+.version-counter:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 6px rgba(255,111,156,0.06);
+}
+
+/* small subtle underline accent */
+.version-counter::after {
+  /* note: we reserve ::after for magenta layer; the main text content is in the DOM node itself */
+}
+
+/* keyframe for fast jump/flicker */
+@keyframes rapidGlitch {
+  0% {
+    transform: translateX(0) translateY(0) skewX(0deg);
+    opacity: 0.85;
+  }
+  25% {
+    transform: translateX(-1px) translateY(0) skewX(-2deg);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateX(1px) translateY(1px) skewX(2deg);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translateX(-2px) translateY(-1px) skewX(-3deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(0) translateY(0) skewX(0deg);
+    opacity: 0.85;
+  }
+}
+
+/* hide the counter when not on intro screen (JS also controls this but CSS gives fallback) */
+.app-shell[data-screen="intro"] .version-counter {
+  opacity: 1;
+}
+.app-shell[data-screen]:not([data-screen="intro"]) .version-counter {
+  opacity: 0;
+  transform: translateY(6px) scale(0.98);
+  pointer-events: none;
 }
 
 .app-shell {
@@ -519,6 +710,7 @@ body.static-muted .crt-overlay {
   position: absolute;
   top: 100%;
   transform: translate(calc(-50% + var(--label-shift, 0px)), 0);
+  width: 150%;
   margin-top: 0.45rem;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
@@ -576,9 +768,26 @@ body.static-muted .crt-overlay {
 
 .modal-content.shortage {
   max-width: min(640px, 90vw);
+  /* Keep modal within viewport while leaving a small margin */
+  max-height: calc(100vh - 3.5rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* body scrolls, footer stays visible */
   background: rgba(3, 10, 12, 0.92);
   border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
   box-shadow: 0 0 28px rgba(0, 0, 0, 0.65);
+}
+
+.modal-content.shortage .modal-body {
+  flex: 1 1 auto;
+  min-height: 0; /* allow flex child to shrink properly */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 0.6rem; /* space for scrollbar so content doesn't hide */
+}
+
+.modal-content.shortage .modal-footer {
+  flex-shrink: 0;
 }
 
 .shortage-puzzle {
