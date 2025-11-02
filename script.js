@@ -384,8 +384,11 @@ let isPaused = false;
 let powerOffline = false;
 let currentEncounterNode = null;
 let pendingShortageNode = null;
-let shortageSequence = [];
-let shortageProgress = 0;
+let shortageChallenges = [];
+let currentShortageStage = 0;
+let shortageTimer = null;
+let shortageTimeRemaining = 0;
+let shortageStageCleanup = null;
 let statusTimeout = null;
 let statusLocked = false;
 let watcherTimeout = null;
@@ -605,6 +608,34 @@ function renderMap(level) {
     mapArea.append(button);
     node.element = button;
   });
+  requestAnimationFrame(() => realignMapLabels());
+}
+
+function realignMapLabels() {
+  if (!mapArea || mapArea.childElementCount === 0) return;
+  const areaRect = mapArea.getBoundingClientRect();
+  if (areaRect.width === 0 || areaRect.height === 0) return;
+  const maxWidth = Math.min(200, Math.max(120, areaRect.width - 48));
+  mapArea.querySelectorAll('.map-node .node-label').forEach((label) => {
+    label.style.setProperty('--label-shift', '0px');
+    label.style.maxWidth = `${maxWidth}px`;
+  });
+  requestAnimationFrame(() => {
+    const currentRect = mapArea.getBoundingClientRect();
+    mapArea.querySelectorAll('.map-node .node-label').forEach((label) => {
+      const rect = label.getBoundingClientRect();
+      const margin = 12;
+      const leftOverflow = currentRect.left + margin - rect.left;
+      const rightOverflow = rect.right - (currentRect.right - margin);
+      let shift = 0;
+      if (leftOverflow > 0) {
+        shift = leftOverflow;
+      } else if (rightOverflow > 0) {
+        shift = -rightOverflow;
+      }
+      label.style.setProperty('--label-shift', `${shift}px`);
+    });
+  });
 }
 
 function handleNodeInteraction(node) {
@@ -749,11 +780,13 @@ function restartLevel() {
 function triggerShortage(node) {
   powerOffline = true;
   pendingShortageNode = node;
-  shortageProgress = 0;
-  shortageSequence = shuffleSequence(5);
+  shortageChallenges = createShortageChallenges();
+  currentShortageStage = 0;
+  shortageStageCleanup?.();
+  shortageStageCleanup = null;
   shortageStatus.textContent = 'grid offline. trace lines flicker.';
-  shortageDescription.textContent = 'Follow the highlighted order. Each sigil demands a steady hand.';
-  renderShortagePuzzle();
+  shortageDescription.innerHTML =
+    'Caretaker protocols spin up. Await the <span class="highlight">directive sequence</span> to relight the hall.';
   shortageOverlay.classList.remove('hidden');
   pointerSuspended = true;
   refreshPointerVisibility();
@@ -761,58 +794,13 @@ function triggerShortage(node) {
   playShortageAmbient();
   playShortageScore();
   setStatus('the level waits in darkness. restore the pulse.', { duration: 3200 });
-}
-
-function renderShortagePuzzle() {
-  shortagePuzzle.innerHTML = '';
-  shortageSequence.forEach((value, index) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'sigil';
-    button.dataset.order = String(value);
-    button.textContent = value + 1;
-    button.addEventListener('click', () => handleShortageInput(index));
-    shortagePuzzle.append(button);
-  });
-  requestAnimationFrame(() => {
-    const first = shortagePuzzle.querySelector('[data-order="0"]');
-    if (first) first.classList.add('target');
-  });
-}
-
-function handleShortageInput(index) {
-  const expectedOrder = shortageProgress;
-  const button = shortagePuzzle.children[index];
-  if (!button) return;
-  const order = Number(button.dataset.order);
-  if (order === expectedOrder) {
-    button.classList.add('charged');
-    button.classList.remove('target');
-    shortageProgress += 1;
-    const nextButton = Array.from(shortagePuzzle.children).find(
-      (child) => Number(child.dataset.order) === shortageProgress
-    );
-    if (nextButton) {
-      nextButton.classList.add('target');
-      shortageStatus.textContent = `relay ${shortageProgress}/${shortageSequence.length} stabilized.`;
-    } else {
-      resolveShortage();
-    }
-  } else {
-    button.classList.add('fault');
-    shortageStatus.textContent = 'sequence broken. begin again.';
-    setTimeout(() => {
-      shortageProgress = 0;
-      Array.from(shortagePuzzle.children).forEach((child) => {
-        child.classList.remove('charged', 'fault', 'target');
-      });
-      const first = shortagePuzzle.querySelector('[data-order="0"]');
-      if (first) first.classList.add('target');
-    }, 420);
-  }
+  startShortageStage();
 }
 
 function resolveShortage() {
+  stopShortageTimer();
+  shortageStageCleanup?.();
+  shortageStageCleanup = null;
   shortageOverlay.classList.add('hidden');
   stopShortageAmbient();
   stopShortageScore();
@@ -820,6 +808,7 @@ function resolveShortage() {
   pointerSuspended = false;
   refreshPointerVisibility();
   mapArea?.classList.remove('power-down');
+  realignMapLabels();
   if (pendingShortageNode && !pendingShortageNode.visited) {
     markNodeVisited(pendingShortageNode);
     if (pendingShortageNode.encounter.afterStatus) {
@@ -830,9 +819,14 @@ function resolveShortage() {
   }
   pendingShortageNode = null;
   suspendWatchers(false);
+  shortageChallenges = [];
+  currentShortageStage = 0;
 }
 
 function abortShortage() {
+  stopShortageTimer();
+  shortageStageCleanup?.();
+  shortageStageCleanup = null;
   shortageOverlay.classList.add('hidden');
   stopShortageAmbient();
   stopShortageScore();
@@ -842,15 +836,449 @@ function abortShortage() {
   pointerSuspended = false;
   refreshPointerVisibility();
   suspendWatchers(true);
+  shortageChallenges = [];
+  currentShortageStage = 0;
 }
 
-function shuffleSequence(length) {
-  const arr = Array.from({ length }, (_, index) => index);
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+function startShortageStage() {
+  if (shortageOverlay.classList.contains('hidden')) return;
+  if (!shortageChallenges.length) return;
+  const stage = shortageChallenges[currentShortageStage];
+  shortagePuzzle.innerHTML = '';
+  shortageStageCleanup?.();
+  shortageStageCleanup = null;
+  shortageStatus.textContent = stage.status;
+  shortageDescription.innerHTML = stage.description;
+  const context = {
+    container: shortagePuzzle,
+    stageIndex: currentShortageStage,
+    totalStages: shortageChallenges.length,
+    complete: (message) => advanceShortageStage(message),
+    fail: (message) => failShortageStage(message),
+    updateStatus: (message) => {
+      if (message) {
+        shortageStatus.textContent = message;
+      }
+    },
+    createShell: (title) => createChallengeShell(title, currentShortageStage, shortageChallenges.length),
+  };
+  const result = stage.setup(context) ?? {};
+  shortageStageCleanup = result.cleanup ?? null;
+  startShortageTimer(
+    stage.duration,
+    () => failShortageStage('Timer expired. The hatch resets.'),
+    result.timerControl
+  );
+}
+
+function advanceShortageStage(message) {
+  stopShortageTimer();
+  shortageStageCleanup?.();
+  shortageStageCleanup = null;
+  if (message) {
+    shortageStatus.textContent = message;
   }
-  return arr;
+  if (currentShortageStage < shortageChallenges.length - 1) {
+    currentShortageStage += 1;
+    shortageDescription.innerHTML =
+      '<span class="highlight">Phase locked.</span> The caretaker scribbles the next directive across the hatch.';
+    setTimeout(() => {
+      if (!shortageOverlay.classList.contains('hidden')) {
+        startShortageStage();
+      }
+    }, 1100);
+  } else {
+    shortageDescription.innerHTML =
+      '<span class="highlight">Override accepted.</span> Auxiliary current rushes back into the grid.';
+    setTimeout(() => {
+      resolveShortage();
+    }, 900);
+  }
+}
+
+function failShortageStage(message) {
+  stopShortageTimer();
+  shortageStageCleanup?.();
+  shortageStageCleanup = null;
+  if (message) {
+    shortageStatus.textContent = message;
+  }
+  if (shortageOverlay.classList.contains('hidden')) return;
+  shortageDescription.innerHTML =
+    '<span class="highlight">The caretaker wipes the schematics clean.</span> Every relay demands a fresh attempt.';
+  shortageChallenges = createShortageChallenges();
+  currentShortageStage = 0;
+  setTimeout(() => {
+    if (!shortageOverlay.classList.contains('hidden')) {
+      startShortageStage();
+    }
+  }, 1200);
+}
+
+function startShortageTimer(duration, onExpire, timerControl) {
+  stopShortageTimer();
+  const control = timerControl;
+  const total = Math.max(1, duration);
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const startTime = now();
+  control?.setRemaining?.(total);
+  control?.setProgress?.(0);
+  shortageTimeRemaining = total;
+  shortageTimer = setInterval(() => {
+    const elapsed = (now() - startTime) / 1000;
+    const remaining = Math.max(0, total - elapsed);
+    shortageTimeRemaining = remaining;
+    control?.setRemaining?.(remaining);
+    control?.setProgress?.((total - remaining) / total);
+    if (remaining <= 0) {
+      stopShortageTimer();
+      onExpire?.();
+    }
+  }, 100);
+}
+
+function stopShortageTimer() {
+  if (shortageTimer) {
+    clearInterval(shortageTimer);
+    shortageTimer = null;
+  }
+}
+
+function createShortageChallenges() {
+  return [
+    {
+      id: 'relay-sequence',
+      status: 'Sequence the conduits exactly as transcribed.',
+      description:
+        'Phosphor notes swirl along the hatch. Read every glowing <span class="highlight">directive</span> before you touch a relay.',
+      duration: 65,
+      setup: (context) => renderRelaySequence(context),
+    },
+    {
+      id: 'diagnostic-audit',
+      status: 'Only truths from the maintenance log may be affirmed.',
+      description:
+        'An annotated log unfurls, sentences pulsing in amber. Select the <span class="highlight">statements that remain factual</span>.',
+      duration: 70,
+      setup: (context) => renderDiagnosticAudit(context),
+    },
+    {
+      id: 'glyph-override',
+      status: 'Transcribe the override phrase without error.',
+      description:
+        'The failsafe projects a column of glyphs. Stitch the <span class="highlight">glowing words</span> into the final command.',
+      duration: 62,
+      setup: (context) => renderGlyphOverride(context),
+    },
+  ];
+}
+
+function createChallengeShell(title, stageIndex, totalStages) {
+  const article = document.createElement('article');
+  article.className = 'challenge';
+  const header = document.createElement('header');
+  const titleSpan = document.createElement('span');
+  titleSpan.textContent = title;
+  const stageSpan = document.createElement('span');
+  stageSpan.textContent = `stage ${stageIndex + 1}/${totalStages}`;
+  header.append(titleSpan, stageSpan);
+  const timerControl = createTimerControl();
+  article.append(header, timerControl.element);
+  return { article, timerControl };
+}
+
+function createTimerControl() {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'timer';
+  const track = document.createElement('div');
+  track.className = 'timer-track';
+  const bar = document.createElement('div');
+  bar.className = 'timer-bar';
+  track.append(bar);
+  const text = document.createElement('span');
+  text.className = 'timer-text';
+  text.textContent = formatTime(0);
+  wrapper.append(track, text);
+  return {
+    element: wrapper,
+    setRemaining(seconds) {
+      text.textContent = formatTime(seconds);
+    },
+    setProgress(value) {
+      const clamped = Math.min(1, Math.max(0, value));
+      bar.style.width = `${clamped * 100}%`;
+    },
+  };
+}
+
+function formatTime(seconds) {
+  const rounded = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(rounded / 60);
+  const remaining = rounded % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`;
+}
+
+function shuffleArray(source) {
+  const array = [...source];
+  for (let i = array.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function renderRelaySequence(context) {
+  const { article, timerControl } = context.createShell('relay alignment');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Caretaker Amon etched a mnemonic across the hatch: obey the solo singer, then the choir of three, follow the vowel glyphs, mirror the prior tone, and finally drain the siphon gate.';
+  article.append(prompt);
+
+  const memo = document.createElement('ol');
+  memo.className = 'caretaker-memo';
+  memo.innerHTML = `
+    <li><span class="highlight">Solo coil</span> hums alone when all others fall silent.</li>
+    <li>The <span class="highlight">triad dais</span> chimes only when three pulses harmonize.</li>
+    <li><span class="highlight">Echo glyph</span> relays the vowels carved into its rim.</li>
+    <li>The <span class="highlight">mirror ladder</span> copies the last frequency you stabilized.</li>
+    <li>Seal the surge with the patient <span class="highlight">siphon gate</span>.</li>
+  `;
+  article.append(memo);
+
+  const circuits = [
+    {
+      id: 'solo',
+      order: 0,
+      name: 'solo coil',
+      detail: 'Sings alone whenever the grid dims to a whisper.',
+    },
+    {
+      id: 'triad',
+      order: 1,
+      name: 'triad dais',
+      detail: 'Answers only to pulses counted in threes.',
+    },
+    {
+      id: 'echo',
+      order: 2,
+      name: 'echo glyph',
+      detail: 'Bright vowels stitched along its outer ring.',
+    },
+    {
+      id: 'mirror',
+      order: 3,
+      name: 'mirror ladder',
+      detail: 'Imitates whichever relay you sealed just before it.',
+    },
+    {
+      id: 'siphon',
+      order: 4,
+      name: 'siphon gate',
+      detail: 'Drains the excess charge once every other path is awake.',
+    },
+  ];
+
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid';
+  article.append(grid);
+
+  let progress = 0;
+  const total = circuits.length;
+
+  const buttons = shuffleArray(circuits).map((circuit) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.order = String(circuit.order);
+    button.innerHTML = `
+      <span class="choice-title">${circuit.name}</span>
+      <span class="choice-detail">${circuit.detail}</span>
+    `;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      const expected = Number(button.dataset.order);
+      if (expected === progress) {
+        button.classList.add('correct-step');
+        button.setAttribute('aria-pressed', 'true');
+        button.disabled = true;
+        progress += 1;
+        context.updateStatus(`Directive ${progress}/${total} sealed.`);
+        if (progress === total) {
+          context.complete('Relay script stabilized. Conduits breathe in order.');
+        }
+      } else {
+        button.classList.add('incorrect');
+        context.updateStatus('Incorrect conduit. The memo smears and rewrites itself.');
+        setTimeout(() => {
+          button.classList.remove('incorrect');
+        }, 520);
+        progress = 0;
+        buttons.forEach((btn) => {
+          btn.classList.remove('correct-step');
+          btn.disabled = false;
+          btn.setAttribute('aria-pressed', 'false');
+        });
+      }
+    });
+    grid.append(button);
+    return button;
+  });
+
+  return { timerControl };
+}
+
+function renderDiagnosticAudit(context) {
+  const { article, timerControl } = context.createShell('diagnostic audit');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'With the conduits humming, a maintenance log scrolls open. Two statements remain reliable—no more, no less.';
+  article.append(prompt);
+
+  const log = document.createElement('div');
+  log.className = 'challenge-log';
+  log.innerHTML = `
+    <p><strong>Maintenance Memo // Reverberation Study</strong></p>
+    <p>The <span class="highlight">solo coil</span> accepts initiation only when every other relay is quiet. The <span class="highlight">triad dais</span> refuses single pulses, demanding clustered threes.</p>
+    <p><span class="highlight">Echo glyph</span> lights third, translating carved vowels into current. The <span class="highlight">mirror ladder</span> mirrors the last stabilized tone; activate it too early and it copies silence.</p>
+    <p>End with the <span class="highlight">siphon gate</span> or the atrium floods. Its channel is sluggish by design—never place it anywhere but last.</p>
+  `;
+  article.append(log);
+
+  const statements = [
+    {
+      id: 'mirror-follows',
+      text: 'The mirror ladder only resonates after another conduit has already stabilized.',
+      correct: true,
+    },
+    {
+      id: 'siphon-before',
+      text: 'To prevent overflow the siphon gate must open before the echo glyph.',
+      correct: false,
+    },
+    {
+      id: 'echo-third',
+      text: 'Echo glyph belongs in the third position, translating the carved vowels.',
+      correct: true,
+    },
+    {
+      id: 'triad-solo',
+      text: 'Triad dais accepts a single pulse so long as it is steady.',
+      correct: false,
+    },
+  ];
+
+  const choiceGrid = document.createElement('div');
+  choiceGrid.className = 'choice-grid';
+  article.append(choiceGrid);
+
+  const buttons = statements.map((statement) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = statement.id;
+    button.innerHTML = `
+      <span class="choice-detail">${statement.text}</span>
+    `;
+    button.addEventListener('click', () => {
+      button.classList.toggle('selected');
+      button.setAttribute('aria-pressed', button.classList.contains('selected') ? 'true' : 'false');
+    });
+    button.setAttribute('aria-pressed', 'false');
+    choiceGrid.append(button);
+    return button;
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'confirm assertions';
+  submit.addEventListener('click', () => {
+    const selected = buttons.filter((btn) => btn.classList.contains('selected'));
+    if (selected.length !== 2) {
+      context.updateStatus('Exactly two statements must glow true.');
+      return;
+    }
+    const incorrect = selected.filter((btn) => {
+      const id = btn.dataset.id;
+      const entry = statements.find((statement) => statement.id === id);
+      return !entry?.correct;
+    });
+    if (incorrect.length === 0) {
+      context.complete('Diagnostics reconciled. The log hums with approval.');
+    } else {
+      incorrect.forEach((btn) => {
+        btn.classList.add('incorrect');
+        setTimeout(() => btn.classList.remove('incorrect'), 520);
+      });
+      context.updateStatus('False assertion detected. Cross-check the memo.');
+    }
+  });
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderGlyphOverride(context) {
+  const { article, timerControl } = context.createShell('override glyph');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'The failsafe choir chants in fragments. Collect the glowing words in order and type them without embellishment.';
+  article.append(prompt);
+
+  const chant = document.createElement('div');
+  chant.className = 'challenge-log chant';
+  chant.innerHTML = `
+    <p>"When the dark yawns, whisper <span class="glyph">LISTEN</span> so the relays hear you."</p>
+    <p>"Hold the beam steady and let it <span class="glyph">TRACE</span> the pattern you restored."</p>
+    <p>"Guide the runoff through the patient <span class="glyph">SIPHON</span>."</p>
+    <p>"Only then may the circuits <span class="glyph">AWAKE</span> and shine."</p>
+  `;
+  article.append(chant);
+
+  const expected = 'listen trace siphon awake';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'challenge-input';
+  input.placeholder = 'type the override phrase here';
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'transmit override';
+
+  function handleSubmit() {
+    const value = input.value.trim().toLowerCase();
+    if (value === expected) {
+      context.complete('Override transmitted. Power surges back through the trace.');
+    } else {
+      input.classList.add('fault');
+      context.updateStatus('Incorrect phrase. Match the glowing words exactly.');
+      setTimeout(() => input.classList.remove('fault'), 520);
+    }
+  }
+
+  submit.addEventListener('click', () => handleSubmit());
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSubmit();
+    }
+  });
+
+  article.append(input, submit);
+  requestAnimationFrame(() => input.focus());
+
+  return { timerControl };
 }
 
 function suspendWatchers(suspended) {
@@ -1005,6 +1433,7 @@ window.addEventListener('resize', () => {
   if (!gameActive) return;
   pointerPosition.x = Math.min(window.innerWidth, Math.max(0, pointerPosition.x));
   pointerPosition.y = Math.min(window.innerHeight, Math.max(0, pointerPosition.y));
+  realignMapLabels();
 });
 
 setupFromStorage();
