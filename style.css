@@ -90,9 +90,138 @@ body.static-muted .crt-overlay {
 }
 
 .program-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   font-family: 'VT323', monospace;
-  font-size: clamp(1.4rem, 2.4vw, 2rem);
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
+  line-height: 1;
+}
+
+.program-title .title-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  font-size: clamp(2.15rem, 4.2vw, 3rem);
+  letter-spacing: 0.28em;
+}
+
+.program-title .tagline {
+  font-size: clamp(0.95rem, 2.4vw, 1.3rem);
+  letter-spacing: 0.18em;
+  text-transform: none;
+  color: color-mix(in srgb, var(--muted) 80%, var(--accent) 20%);
+}
+
+.program-title .exe {
+  position: relative;
+  display: inline-block;
+  padding: 0 0.1em;
+  color: var(--accent);
+  text-shadow: 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: glitchPulse 2s infinite steps(2, end);
+}
+
+.program-title .exe::before,
+.program-title .exe::after {
+  content: '.exe';
+  position: absolute;
+  inset: 0;
+  opacity: 0.8;
+  mix-blend-mode: screen;
+}
+
+.program-title .exe::before {
+  color: #5ffbf1;
+  animation: glitchBefore 1.4s infinite linear;
+}
+
+.program-title .exe::after {
+  color: #f45bff;
+  animation: glitchAfter 1.1s infinite linear reverse;
+}
+
+@keyframes glitchPulse {
+  0%,
+  100% {
+    text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent),
+      -1px 0 3px rgba(93, 255, 200, 0.6),
+      1px 0 3px rgba(244, 91, 255, 0.6);
+    filter: drop-shadow(0 0 4px rgba(244, 91, 255, 0.55));
+  }
+  40% {
+    text-shadow: 1px -1px 6px rgba(93, 255, 200, 0.65),
+      -1px 1px 6px rgba(244, 91, 255, 0.65);
+    filter: drop-shadow(0 0 8px rgba(93, 255, 200, 0.55));
+  }
+  55% {
+    text-shadow: -2px 0 4px rgba(244, 91, 255, 0.75),
+      2px 0 4px rgba(93, 255, 200, 0.75);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+  }
+  70% {
+    text-shadow: 0 1px 5px rgba(244, 91, 255, 0.8),
+      0 -1px 5px rgba(93, 255, 200, 0.8);
+    filter: drop-shadow(0 0 12px rgba(244, 91, 255, 0.65));
+  }
+}
+
+@keyframes glitchBefore {
+  0% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+  20% {
+    transform: translate(-2px, -2px);
+    clip-path: inset(0 0 65% 0);
+  }
+  40% {
+    transform: translate(2px, -1px);
+    clip-path: inset(35% 0 0 0);
+  }
+  60% {
+    transform: translate(-1px, 1px);
+    clip-path: inset(15% 0 30% 0);
+  }
+  80% {
+    transform: translate(1px, -3px);
+    clip-path: inset(45% 0 5% 0);
+  }
+  100% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes glitchAfter {
+  0% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
+  16% {
+    transform: translate(2px, 2px);
+    clip-path: inset(60% 0 0 0);
+  }
+  32% {
+    transform: translate(-3px, 1px);
+    clip-path: inset(0 0 40% 0);
+  }
+  48% {
+    transform: translate(1px, -2px);
+    clip-path: inset(25% 0 25% 0);
+  }
+  64% {
+    transform: translate(3px, 0);
+    clip-path: inset(10% 0 50% 0);
+  }
+  80% {
+    transform: translate(-2px, 3px);
+    clip-path: inset(50% 0 10% 0);
+  }
+  100% {
+    transform: translate(0, 0);
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 .session-indicator {
