@@ -566,6 +566,7 @@ body.static-muted .crt-overlay {
   z-index: 1000;
   mix-blend-mode: screen;
   transition: opacity 0.3s ease;
+  cursor: none;
 }
 
 .pointer.is-hidden {
