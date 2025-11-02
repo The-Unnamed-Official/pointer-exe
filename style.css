@@ -16,6 +16,7 @@
 
 * {
   box-sizing: border-box;
+  user-select: none;
 }
 
 html,
@@ -474,7 +475,6 @@ body.static-muted .crt-overlay {
   border-radius: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  cursor: pointer;
   overflow: hidden;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
   font-family: inherit;
@@ -684,7 +684,6 @@ body.static-muted .crt-overlay {
   position: relative;
   display: inline-flex;
   align-items: center;
-  cursor: pointer;
   gap: 0.5rem;
 }
 
