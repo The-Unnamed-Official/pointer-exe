@@ -152,6 +152,7 @@ function refreshPointerVisibility() {
   } else {
     pointerGhost.classList.add('is-hidden');
   }
+  document.body?.classList.toggle('hide-cursor', pointerEnabled && gameActive);
 }
 
 function ensurePointerAnimation() {
