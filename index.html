@@ -1,114 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pointer.exe</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body class="menu-visible">
-  <div id="menu" class="pane visible">
-    <div class="pane-content menu-pane">
-      <header>
-        <span class="label">file</span>
-        <span class="value">pointer.exe</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pointer.exe // reinitialized</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="crt-overlay" aria-hidden="true"></div>
+
+    <div id="pointer-ghost" class="pointer is-hidden" aria-hidden="true">
+      <span class="pointer-ring"></span>
+      <span class="pointer-core"></span>
+    </div>
+
+    <div class="app-shell" data-screen="intro">
+      <header class="top-bar">
+        <div class="program-title">
+          <span class="title-main">
+            pointer<span class="exe">.exe</span>
+          </span>
+          <span class="tagline">welcome back, signal seeker</span>
+        </div>
+        <div class="session-indicator">
+          <span class="label">session</span>
+          <span class="value" id="session-label">000</span>
+        </div>
+        <button class="glitch-button ghost" data-action="settings" type="button">
+          settings
+        </button>
       </header>
-      <section class="meta">
-        <div><span class="label">size</span><span class="value">3.7 mb (anomalous)</span></div>
-        <div><span class="label">origin</span><span class="value">/usr/dev/null</span></div>
-        <div><span class="label">hash</span><span class="value" data-animate-hash>0x0000-FFFF</span></div>
-      </section>
-      <nav class="menu-actions">
-        <button id="menu-open" class="menu-button" type="button">open</button>
-        <button id="menu-preferences" class="menu-button" type="button">preferances</button>
-        <button id="menu-erase" class="menu-button" type="button">erase</button>
-      </nav>
-      <article class="menu-lore">
-        <header>
-          <span class="label">fragment log</span>
-          <span class="value">bootstrap excerpts</span>
+
+      <main class="main-pane">
+        <section id="intro-screen" class="panel active">
+          <div class="intro-copy">
+            <h1>boot sector // anomaly</h1>
+            <p>
+              caretaker logs recovered with <span class="missing">segments missing</span>.
+              fragments hint at an echo following every intention. initialize the
+              trace, let the ghost pointer learn your pace, and rebuild the record.
+            </p>
+            <p class="hint">note: the log redacts <span class="missing">three truths</span>. each level reveals one.</p>
+          </div>
+          <div class="intro-actions">
+            <button class="glitch-button primary" data-action="start" type="button">
+              boot the trace
+            </button>
+            <button class="glitch-button" data-action="open-lore" type="button">
+              read prologue fragment
+            </button>
+          </div>
+          <article class="prologue hidden" id="prologue">
+            <header>fragment log // prologue</header>
+            <p>
+              [001] pointer.exe observed hand movements, rewound them, and wrote a
+              manual. page 3 is <span class="missing">missing</span>. whoever tore it out left
+              a thumbprint of light.
+            </p>
+          </article>
+        </section>
+
+        <section id="level-screen" class="panel hidden">
+          <div class="level-header">
+            <div>
+              <h2 id="level-title">level 00</h2>
+              <p id="room-label" class="room-label">awaiting input...</p>
+            </div>
+            <div class="progress">
+              <span class="label">progress</span>
+              <span class="value" id="progress-label">0/0</span>
+            </div>
+          </div>
+
+          <article class="level-lore">
+            <header>lore buffer</header>
+            <p id="level-lore">The archive waits.</p>
+            <ul id="fragment-list" class="fragment-list"></ul>
+          </article>
+
+          <section class="challenge">
+            <header>
+              <span>challenge protocol</span>
+              <span id="timer-label" class="timer-label">00s</span>
+            </header>
+            <p id="challenge-prompt" class="challenge-prompt"></p>
+            <div class="timer">
+              <div class="timer-track">
+                <div id="timer-bar" class="timer-bar"></div>
+              </div>
+              <span id="timer-text" class="timer-text">ready</span>
+            </div>
+            <div id="choice-grid" class="choice-grid"></div>
+            <p id="status-line" class="status-line">decide quickly.</p>
+          </section>
+
+          <section id="final-revelation" class="final-revelation hidden">
+            <header>final log // reconstructed</header>
+            <p id="final-text"></p>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="settings-overlay" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <header class="modal-header">
+          <div>
+            <h2>system preferences</h2>
+            <p>toggle behaviors grafted to the session. switches ripple with intent.</p>
+          </div>
+          <button class="glitch-button ghost" data-action="close-settings" type="button" aria-label="Close settings">
+            ✕
+          </button>
         </header>
-        <pre id="intro-lore" class="scrollable"></pre>
-      </article>
-      <p class="hint">pointer.exe monitors pointer vectors. proceed calmly. do not let the log close on you.</p>
-    </div>
-  </div>
-
-  <main id="game" class="hidden">
-    <div class="background">
-      <div class="grain"></div>
-      <div class="scanlines"></div>
-      <div class="static"></div>
-    </div>
-    <div id="threat-veil"></div>
-    <div id="whisper"></div>
-
-    <div class="zone-overlay" data-edge="north"><span>ACCESS VECTOR // HOLD STEADY</span></div>
-    <div class="zone-overlay" data-edge="south"><span>EDGE HOSTILITY RISING</span></div>
-    <div class="zone-overlay" data-edge="east"><span>CTRL BOUNDARY</span></div>
-    <div class="zone-overlay" data-edge="west"><span>SYS BORDER : BREATHES</span></div>
-
-    <div id="fragments"></div>
-    <div id="anomalies"></div>
-    <div id="safe-nodes"></div>
-    <div id="door-pattern" class="hidden">
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <div class="ring"></div>
-    </div>
-  </main>
-
-  <div id="cursor" data-press="false" data-threat="0">
-    <div class="outer"></div>
-    <div class="inner"></div>
-  </div>
-
-  <div id="options" class="pane hidden">
-    <div class="pane-content">
-      <header>
-        <span class="label">stability options</span>
-      </header>
-      <label><input type="checkbox" id="reduced-motion" /> reduced motion</label>
-      <label><input type="checkbox" id="high-contrast" /> high contrast</label>
-      <label><input type="checkbox" id="no-jump-cuts" /> no jump cuts</label>
-      <label><input type="checkbox" id="subtitles" /> whisper transcription</label>
-      <label><input type="checkbox" id="anchor-aid" /> enlarged anchors</label>
-      <button data-action="resume">resume</button>
-    </div>
-  </div>
-
-  <div id="preferences" class="pane hidden">
-    <div class="pane-content">
-      <header>
-        <span class="label">pointer.exe</span>
-        <span class="value">preferances</span>
-        <button class="close" data-action="close-preferences">✕</button>
-      </header>
-      <p class="intro">toggle interface anomalies here. log segments imply the cursor was grafted late in development.</p>
-      <div class="toggle">
-        <span class="toggle-label">custom cursor</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="custom-cursor-toggle" />
-          <span class="track"><span class="thumb"></span></span>
-        </label>
-        <span class="toggle-state" data-state></span>
+        <div class="modal-body">
+          <div class="settings-option">
+            <span class="option-label">ghost pointer trace</span>
+            <label class="glitch-switch">
+              <input type="checkbox" id="pointer-switch" checked />
+              <span class="switch-rail">
+                <span class="switch-thumb"></span>
+              </span>
+              <span class="switch-caption" data-on="on" data-off="off"></span>
+            </label>
+          </div>
+          <div class="settings-option">
+            <span class="option-label">ambient static wash</span>
+            <label class="glitch-switch">
+              <input type="checkbox" id="static-switch" checked />
+              <span class="switch-rail">
+                <span class="switch-thumb"></span>
+              </span>
+              <span class="switch-caption" data-on="on" data-off="off"></span>
+            </label>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button class="glitch-button primary" data-action="apply-settings" type="button">
+            resume trace
+          </button>
+        </footer>
       </div>
-      <p class="footnote">note: default pointer exposes raw system intent. researchers disagree if that is safer.</p>
-      <button class="secondary" data-action="close-preferences">done</button>
     </div>
-  </div>
 
-  <div id="lore-pane" class="pane hidden">
-    <div class="pane-content">
-      <header>
-        <span class="label">fragment log</span>
-        <button class="close" data-action="close-lore">✕</button>
-      </header>
-      <pre id="lore-text" class="scrollable"></pre>
-    </div>
-  </div>
-
-  <script src="script.js" type="module"></script>
-</body>
+    <script src="script.js" type="module"></script>
+  </body>
 </html>
