@@ -408,9 +408,9 @@ let introComplete = false;
 const introTimers = [];
 let pendingStartAfterIntro = false;
 
-const INTRO_TOTAL_MS = 250000;
-const INTRO_FINAL_REVEAL_MS = 214000;
-const INTRO_GLITCH_MS = 248000;
+const INTRO_TOTAL_MS = 240000;
+const INTRO_FINAL_REVEAL_MS = 220000;
+const INTRO_GLITCH_MS = 228000;
 
 const pointerTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 const pointerPosition = { x: pointerTarget.x, y: pointerTarget.y };
