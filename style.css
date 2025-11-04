@@ -1356,6 +1356,40 @@ body.static-muted .crt-overlay {
   animation: faultShake 0.28s ease;
 }
 
+.calibration-item {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.calibration-item:last-child {
+  margin-bottom: 0;
+}
+
+.calibration-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.calibration-readout {
+  justify-self: end;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 65%, var(--muted) 35%);
+}
+
+.calibration-item.incorrect {
+  background: rgba(255, 79, 109, 0.08);
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.calibration-item.incorrect .calibration-readout {
+  color: rgba(255, 79, 109, 0.9);
+}
+
 .final-revelation {
   border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
   padding: 1.2rem 1.5rem;
