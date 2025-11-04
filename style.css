@@ -320,8 +320,11 @@ body.intro-active {
   3% {
     opacity: 1;
   }
+  80% {
+    transform: rotateX(30deg) translate3d(0, -230vh, 0);
+  }
   100% {
-    transform: rotateX(30deg) translate3d(0, -240vh, 0);
+    transform: rotateX(30deg) translate3d(0, -260vh, 0);
   }
 }
 

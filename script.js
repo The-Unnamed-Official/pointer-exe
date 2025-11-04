@@ -408,7 +408,7 @@ let introComplete = false;
 const introTimers = [];
 let pendingStartAfterIntro = false;
 
-const INTRO_TOTAL_MS = 245000;
+const INTRO_TOTAL_MS = 246700;
 const INTRO_FINAL_REVEAL_MS = 226500;
 const INTRO_GLITCH_MS = 23400;
 
