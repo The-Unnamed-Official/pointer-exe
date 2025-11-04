@@ -170,7 +170,7 @@ body.intro-active {
   line-height: 2.1;
   text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 25%, transparent);
   transform-origin: 50% 100%;
-  animation: introScroll 295s linear forwards;
+  animation: introScroll 310s linear forwards;
   max-width: 100%;
   transform: rotateX(30deg) translate3d(0, 240vh, 0);
 }
