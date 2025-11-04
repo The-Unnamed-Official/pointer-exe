@@ -11,6 +11,7 @@
   --danger: #ff4f6d;
   --success: #5eff85;
   --glow: color-mix(in srgb, var(--accent) 35%, transparent);
+  --intro-vh: 1vh;
   color-scheme: dark;
 }
 
@@ -133,7 +134,7 @@ body.intro-active {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 6vh 6vw 10vh;
+  padding: calc(var(--intro-vh, 1vh) * 6) 6vw calc(var(--intro-vh, 1vh) * 10);
   background: linear-gradient(180deg, rgba(4, 10, 12, 0.94), rgba(3, 7, 9, 0.86));
   backdrop-filter: blur(6px);
   color: var(--muted);
@@ -172,7 +173,7 @@ body.intro-active {
   transform-origin: 50% 100%;
   animation: introScroll 310s linear forwards;
   max-width: 100%;
-  transform: rotateX(30deg) translate3d(0, 240vh, 0);
+  transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * 240), 0);
 }
 
 .intro-scroll p {
@@ -314,7 +315,7 @@ body.intro-active {
 
 @keyframes introScroll {
   0% {
-    transform: rotateX(30deg) translate3d(0, 295vh, 0);
+    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * 295), 0);
     opacity: 0;
   }
   3% {
@@ -324,7 +325,7 @@ body.intro-active {
     transform: rotateX(30deg) translate3d(0, -230vh, 0);
   }
   100% {
-    transform: rotateX(30deg) translate3d(0, -260vh, 0);
+    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * -260), 0);
   }
 }
 

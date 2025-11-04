@@ -407,10 +407,97 @@ let introActive = false;
 let introComplete = false;
 const introTimers = [];
 let pendingStartAfterIntro = false;
+const introFullscreenState = {
+  wasFullscreenBeforeIntro: false,
+  viewportLocked: false,
+};
 
 const INTRO_TOTAL_MS = 246700;
 const INTRO_FINAL_REVEAL_MS = 226500;
 const INTRO_GLITCH_MS = 23400;
+
+function getFullscreenElement() {
+  return (
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement ||
+    null
+  );
+}
+
+function setIntroViewportUnit() {
+  const unit = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--intro-vh', `${unit}px`);
+}
+
+function lockIntroViewportUnit() {
+  setIntroViewportUnit();
+  introFullscreenState.viewportLocked = true;
+}
+
+function unlockIntroViewportUnit() {
+  introFullscreenState.viewportLocked = false;
+  setIntroViewportUnit();
+}
+
+function prepareIntroFullscreen() {
+  lockIntroViewportUnit();
+  introFullscreenState.wasFullscreenBeforeIntro = Boolean(getFullscreenElement());
+  if (introFullscreenState.wasFullscreenBeforeIntro) {
+    return;
+  }
+  const element = document.documentElement;
+  const request =
+    element.requestFullscreen ||
+    element.webkitRequestFullscreen ||
+    element.mozRequestFullScreen ||
+    element.msRequestFullscreen;
+  if (!request) {
+    unlockIntroViewportUnit();
+    return;
+  }
+  try {
+    const result = request.call(element);
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => {
+        unlockIntroViewportUnit();
+      });
+    }
+  } catch (error) {
+    unlockIntroViewportUnit();
+  }
+}
+
+function teardownIntroFullscreen() {
+  const finalize = () => {
+    unlockIntroViewportUnit();
+    introFullscreenState.wasFullscreenBeforeIntro = false;
+  };
+  if (!introFullscreenState.wasFullscreenBeforeIntro && getFullscreenElement()) {
+    const exit =
+      document.exitFullscreen ||
+      document.webkitExitFullscreen ||
+      document.mozCancelFullScreen ||
+      document.msExitFullscreen;
+    if (!exit) {
+      finalize();
+      return;
+    }
+    try {
+      const result = exit.call(document);
+      if (result && typeof result.then === 'function') {
+        result.then(finalize).catch(finalize);
+      } else {
+        finalize();
+      }
+    } catch (error) {
+      finalize();
+    }
+    return;
+  }
+  finalize();
+}
 
 const pointerTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 const pointerPosition = { x: pointerTarget.x, y: pointerTarget.y };
@@ -553,6 +640,7 @@ function finishIntro({ skipped = false } = {}) {
   const finalize = () => {
     const shouldStartGame = pendingStartAfterIntro;
     pendingStartAfterIntro = false;
+    teardownIntroFullscreen();
     if (shouldStartGame) {
       startGame();
     } else {
@@ -612,6 +700,7 @@ function startIntroSequence({ launchGame = false } = {}) {
   clearIntroTimers();
   stopIntroAudio();
   stopMainMenuAudio();
+  prepareIntroFullscreen();
   playIntroAudio();
   introTimers.push(setTimeout(() => enterIntroFinalPhase(), INTRO_FINAL_REVEAL_MS));
   introTimers.push(setTimeout(() => triggerIntroGlitch(), INTRO_GLITCH_MS));
@@ -1564,12 +1653,19 @@ document.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('resize', () => {
+  if (!introFullscreenState.viewportLocked) {
+    setIntroViewportUnit();
+  }
+});
+
+window.addEventListener('resize', () => {
   if (!gameActive) return;
   pointerPosition.x = Math.min(window.innerWidth, Math.max(0, pointerPosition.x));
   pointerPosition.y = Math.min(window.innerHeight, Math.max(0, pointerPosition.y));
   realignMapLabels();
 });
 
+setIntroViewportUnit();
 setupFromStorage();
 introActive = false;
 setScreen('intro');
