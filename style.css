@@ -331,7 +331,7 @@ body.intro-active {
     transform: rotateX(30deg) translate3d(0, 50vh, 0);
   }
   100% {
-    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * -177), 0);
+    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * -157), 0);
   }
 }
 
@@ -1215,6 +1215,7 @@ body.static-muted .crt-overlay {
     transparent 1px,
     transparent 4px
   );
+  pointer-events: none;
   transition: opacity 0.2s ease;
 }
 
