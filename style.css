@@ -315,17 +315,23 @@ body.intro-active {
 
 @keyframes introScroll {
   0% {
-    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * 295), 0);
+    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * 307), 0);
     opacity: 0;
   }
   3% {
     opacity: 1;
   }
-  80% {
-    transform: rotateX(30deg) translate3d(0, -200vh, 0);
+  5% {
+    transform: rotateX(30deg) translate3d(0, 240vh, 0);
+  }
+  6% {
+    transform: rotateX(30deg) translate3d(0, 230vh, 0);
+  }
+  50% {
+    transform: rotateX(30deg) translate3d(0, 50vh, 0);
   }
   100% {
-    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * -260), 0);
+    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * -177), 0);
   }
 }
 
