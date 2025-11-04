@@ -16,6 +16,7 @@ const sessionLabel = document.querySelector('#session-label');
 const introOverlay = document.querySelector('#intro-overlay');
 const skipIntroButton = document.querySelector('#skip-intro');
 const introAudio = document.querySelector('#intro-audio');
+const introScrollElement = document.querySelector('.intro-scroll');
 
 const levelTitle = document.querySelector('#level-title');
 const roomLabel = document.querySelector('#room-label');
@@ -405,6 +406,7 @@ let levelState = {
 let introActive = false;
 let introComplete = false;
 const introTimers = [];
+let pendingStartAfterIntro = false;
 
 const INTRO_TOTAL_MS = 250000;
 const INTRO_FINAL_REVEAL_MS = 244000;
@@ -545,41 +547,71 @@ function finishIntro({ skipped = false } = {}) {
   introActive = false;
   clearIntroTimers();
   stopIntroAudio();
+  if (skipIntroButton) {
+    skipIntroButton.disabled = true;
+  }
+  const finalize = () => {
+    const shouldStartGame = pendingStartAfterIntro;
+    pendingStartAfterIntro = false;
+    if (shouldStartGame) {
+      startGame();
+    } else {
+      playMainMenuAudio();
+    }
+  };
   if (introOverlay) {
     if (!skipped && !introOverlay.classList.contains('glitch-out')) {
       triggerIntroGlitch();
     }
+    introOverlay.setAttribute('aria-hidden', 'true');
     const fadeDelay = skipped ? 0 : 220;
+    const removalDelay = skipped ? 360 : 600;
     setTimeout(() => {
       introOverlay.classList.add('completed');
       setTimeout(() => {
         introOverlay.remove();
-      }, 600);
+        finalize();
+      }, removalDelay);
     }, fadeDelay);
+  } else {
+    finalize();
   }
   document.body.classList.remove('intro-active');
-  setTimeout(() => {
-    playMainMenuAudio();
-  }, skipped ? 0 : 320);
 }
 
-function startIntroSequence() {
+function startIntroSequence({ launchGame = false } = {}) {
   if (!introOverlay) {
     introActive = false;
-    playMainMenuAudio();
+    if (launchGame) {
+      startGame();
+    } else {
+      playMainMenuAudio();
+    }
     return;
   }
+  pendingStartAfterIntro = launchGame;
   introActive = true;
   introComplete = false;
   document.body.classList.add('intro-active');
   introOverlay.classList.remove('completed');
   introOverlay.classList.remove('final-phase');
   introOverlay.classList.remove('glitch-out');
+  introOverlay.classList.remove('is-idle');
+  introOverlay.setAttribute('aria-hidden', 'false');
+  void introOverlay.offsetWidth;
   if (skipIntroButton) {
     skipIntroButton.disabled = false;
     skipIntroButton.removeEventListener('click', handleSkipIntro);
     skipIntroButton.addEventListener('click', handleSkipIntro);
   }
+  if (introScrollElement) {
+    introScrollElement.style.animation = 'none';
+    void introScrollElement.offsetWidth;
+    introScrollElement.style.removeProperty('animation');
+  }
+  clearIntroTimers();
+  stopIntroAudio();
+  stopMainMenuAudio();
   playIntroAudio();
   introTimers.push(setTimeout(() => enterIntroFinalPhase(), INTRO_FINAL_REVEAL_MS));
   introTimers.push(setTimeout(() => triggerIntroGlitch(), INTRO_GLITCH_MS));
@@ -1469,7 +1501,12 @@ openLoreButton?.addEventListener('click', () => {
 });
 
 startButton?.addEventListener('click', () => {
-  startGame();
+  if (introActive || pendingStartAfterIntro) return;
+  if (!prologue?.classList.contains('hidden')) {
+    prologue.classList.add('hidden');
+  }
+  startButton.disabled = true;
+  startIntroSequence({ launchGame: true });
 });
 
 preferenceButtons.forEach((button) => {
@@ -1534,7 +1571,13 @@ window.addEventListener('resize', () => {
 });
 
 setupFromStorage();
-introActive = true;
+introActive = false;
 setScreen('intro');
 refreshPointerVisibility();
-startIntroSequence();
+if (skipIntroButton) {
+  skipIntroButton.disabled = true;
+}
+if (introOverlay) {
+  introOverlay.setAttribute('aria-hidden', 'true');
+  introOverlay.classList.add('is-idle');
+}
