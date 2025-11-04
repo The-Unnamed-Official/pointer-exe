@@ -13,6 +13,10 @@ const staticSwitch = document.querySelector('#static-switch');
 const pointerGhost = document.querySelector('#pointer-ghost');
 const sessionLabel = document.querySelector('#session-label');
 
+const introOverlay = document.querySelector('#intro-overlay');
+const skipIntroButton = document.querySelector('#skip-intro');
+const introAudio = document.querySelector('#intro-audio');
+
 const levelTitle = document.querySelector('#level-title');
 const roomLabel = document.querySelector('#room-label');
 const progressLabel = document.querySelector('#progress-label');
@@ -398,6 +402,14 @@ let levelState = {
   keysRequired: 0,
 };
 
+let introActive = false;
+let introComplete = false;
+const introTimers = [];
+
+const INTRO_TOTAL_MS = 250000;
+const INTRO_FINAL_REVEAL_MS = 244000;
+const INTRO_GLITCH_MS = 248000;
+
 const pointerTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 const pointerPosition = { x: pointerTarget.x, y: pointerTarget.y };
 
@@ -414,7 +426,11 @@ function setScreen(screen) {
   levelScreen?.classList.toggle('hidden', screen !== 'level');
   levelScreen?.classList.toggle('active', screen === 'level');
   if (screen === 'intro') {
-    playMainMenuAudio();
+    if (introActive) {
+      stopMainMenuAudio();
+    } else {
+      playMainMenuAudio();
+    }
   } else {
     stopMainMenuAudio();
   }
@@ -487,6 +503,87 @@ function stopMainMenuAudio() {
   if (!mainMenuAudio) return;
   mainMenuAudio.pause();
   mainMenuAudio.currentTime = 0;
+}
+
+function playIntroAudio() {
+  if (!introAudio) return;
+  introAudio.currentTime = 0;
+  introAudio.volume = 0.9;
+  introAudio.play().catch(() => {});
+}
+
+function stopIntroAudio() {
+  if (!introAudio) return;
+  introAudio.pause();
+  introAudio.currentTime = 0;
+}
+
+function clearIntroTimers() {
+  while (introTimers.length) {
+    const timer = introTimers.pop();
+    clearTimeout(timer);
+  }
+}
+
+function enterIntroFinalPhase() {
+  if (!introOverlay || introOverlay.classList.contains('final-phase')) return;
+  introOverlay.classList.add('final-phase');
+}
+
+function triggerIntroGlitch() {
+  if (!introOverlay || introOverlay.classList.contains('glitch-out')) return;
+  introOverlay.classList.add('glitch-out');
+}
+
+function handleSkipIntro() {
+  finishIntro({ skipped: true });
+}
+
+function finishIntro({ skipped = false } = {}) {
+  if (introComplete) return;
+  introComplete = true;
+  introActive = false;
+  clearIntroTimers();
+  stopIntroAudio();
+  if (introOverlay) {
+    if (!skipped && !introOverlay.classList.contains('glitch-out')) {
+      triggerIntroGlitch();
+    }
+    const fadeDelay = skipped ? 0 : 220;
+    setTimeout(() => {
+      introOverlay.classList.add('completed');
+      setTimeout(() => {
+        introOverlay.remove();
+      }, 600);
+    }, fadeDelay);
+  }
+  document.body.classList.remove('intro-active');
+  setTimeout(() => {
+    playMainMenuAudio();
+  }, skipped ? 0 : 320);
+}
+
+function startIntroSequence() {
+  if (!introOverlay) {
+    introActive = false;
+    playMainMenuAudio();
+    return;
+  }
+  introActive = true;
+  introComplete = false;
+  document.body.classList.add('intro-active');
+  introOverlay.classList.remove('completed');
+  introOverlay.classList.remove('final-phase');
+  introOverlay.classList.remove('glitch-out');
+  if (skipIntroButton) {
+    skipIntroButton.disabled = false;
+    skipIntroButton.removeEventListener('click', handleSkipIntro);
+    skipIntroButton.addEventListener('click', handleSkipIntro);
+  }
+  playIntroAudio();
+  introTimers.push(setTimeout(() => enterIntroFinalPhase(), INTRO_FINAL_REVEAL_MS));
+  introTimers.push(setTimeout(() => triggerIntroGlitch(), INTRO_GLITCH_MS));
+  introTimers.push(setTimeout(() => finishIntro(), INTRO_TOTAL_MS));
 }
 
 function playShortageAmbient() {
@@ -1437,5 +1534,7 @@ window.addEventListener('resize', () => {
 });
 
 setupFromStorage();
+introActive = true;
 setScreen('intro');
 refreshPointerVisibility();
+startIntroSequence();
