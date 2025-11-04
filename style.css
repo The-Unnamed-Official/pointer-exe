@@ -181,6 +181,43 @@ body.intro-active {
   color: color-mix(in srgb, var(--text) 85%, transparent);
 }
 
+.intro-scroll .character-name {
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.intro-scroll .character-name.amon {
+  color: var(--accent);
+}
+
+.intro-scroll .character-name.lira {
+  color: var(--danger);
+}
+
+.intro-scroll .character-name.soma {
+  color: var(--success);
+}
+
+.intro-scroll .glow-word {
+  color: color-mix(in srgb, var(--accent) 70%, white 10%);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.intro-scroll .glitch-word {
+  color: color-mix(in srgb, var(--danger) 75%, white 10%);
+  text-shadow:
+    -0.04em 0 color-mix(in srgb, var(--danger) 45%, transparent),
+    0.04em 0 color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.intro-scroll .whisper-word {
+  color: color-mix(in srgb, var(--muted) 65%, white 15%);
+  font-style: italic;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
 .intro-scroll p + p {
   margin-top: 0.1rem;
 }
