@@ -172,7 +172,7 @@ body.intro-active {
   transform-origin: 50% 100%;
   animation: introScroll 250s linear forwards;
   max-width: 100%;
-  transform: rotateX(30deg) translate3d(0, 90vh, 0);
+  transform: rotateX(30deg) translate3d(0, 240vh, 0);
 }
 
 .intro-scroll p {
@@ -270,10 +270,23 @@ body.intro-active {
 
 @keyframes introScroll {
   0% {
-    transform: rotateX(30deg) translate3d(0, 90vh, 0);
+    transform: rotateX(30deg) translate3d(0, 240vh, 0);
     opacity: 0;
   }
-  5% {
+  3% {
+    transform: rotateX(30deg) translate3d(0, 210vh, 0);
+    opacity: 0;
+  }
+  6% {
+    transform: rotateX(30deg) translate3d(0, 150vh, 0);
+    opacity: 0;
+  }
+  9% {
+    transform: rotateX(30deg) translate3d(0, 110vh, 0);
+    opacity: 0.6;
+  }
+  12% {
+    transform: rotateX(30deg) translate3d(0, 90vh, 0);
     opacity: 1;
   }
   100% {
