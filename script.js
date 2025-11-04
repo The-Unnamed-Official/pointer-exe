@@ -1974,32 +1974,32 @@ function renderSpireCalibration(context) {
   const prompt = document.createElement('p');
   prompt.className = 'challenge-prompt';
   prompt.innerHTML =
-    'Phase sliders rise from the spire. Nudge each coil until it sits within two degrees of the caretaker targets.';
+    'Phase sliders rise from the spire. Sweep for the precise caretaker frequency—when the number hums, hold it there.';
   article.append(prompt);
+
+  const randomTarget = () => Math.floor(Math.random() * 100) + 1;
 
   const coils = [
     {
       id: 'outer',
       label: 'outer coil',
       detail: 'Guards the users waiting in the atrium.',
-      target: 18,
     },
     {
       id: 'median',
       label: 'median coil',
       detail: "Echoes the caretakers' shared heartbeat.",
-      target: 56,
     },
     {
       id: 'inner',
       label: 'inner coil',
       detail: 'Cradles the archive heart directly.',
-      target: 82,
     },
-  ];
+  ].map((coil) => ({ ...coil, target: randomTarget() }));
 
-  const tolerance = 2;
   const sliders = new Map();
+  const coilSignalAudio = new Audio('files/coilSignal.mp3');
+  coilSignalAudio.preload = 'auto';
 
   const panel = document.createElement('div');
   panel.className = 'challenge-log';
@@ -2012,20 +2012,46 @@ function renderSpireCalibration(context) {
     title.innerHTML = `<span class="highlight">${coil.label}</span> — ${coil.detail}`;
     const input = document.createElement('input');
     input.type = 'range';
-    input.min = '0';
+    input.min = '1';
     input.max = '100';
-    input.value = String(coil.target);
+    const startingValue = coil.target === 100 ? 99 : coil.target + 1;
+    input.value = String(startingValue);
     input.dataset.id = coil.id;
     input.className = 'calibration-slider';
     const readout = document.createElement('span');
     readout.className = 'calibration-readout';
-    readout.textContent = `${coil.target}`;
+    readout.textContent = input.value;
+
+    const sliderState = { input, wrapper, target: coil.target, lastValue: Number(input.value) };
+
     input.addEventListener('input', () => {
+      const value = Number(input.value);
       readout.textContent = input.value;
+
+      const crossedTarget =
+        value === sliderState.target ||
+        (sliderState.lastValue < sliderState.target && value > sliderState.target) ||
+        (sliderState.lastValue > sliderState.target && value < sliderState.target);
+
+      if (crossedTarget) {
+        try {
+          coilSignalAudio.currentTime = 0;
+          const playback = coilSignalAudio.play();
+          if (playback && typeof playback.catch === 'function') {
+            playback.catch(() => {
+              /* Ignore playback errors caused by user gesture restrictions. */
+            });
+          }
+        } catch (error) {
+          // Ignore playback errors caused by user gesture restrictions.
+        }
+      }
+
+      sliderState.lastValue = value;
     });
     wrapper.append(title, input, readout);
     panel.append(wrapper);
-    sliders.set(coil.id, { input, wrapper });
+    sliders.set(coil.id, sliderState);
   });
 
   const submit = document.createElement('button');
@@ -2037,7 +2063,7 @@ function renderSpireCalibration(context) {
       const slider = sliders.get(coil.id);
       if (!slider) return true;
       const value = Number(slider.input.value);
-      return Math.abs(value - coil.target) > tolerance;
+      return value !== slider.target;
     });
     if (mismatched.length === 0) {
       context.complete('Spire pulses steady. The chamber exhales in relief.');
@@ -2049,7 +2075,7 @@ function renderSpireCalibration(context) {
           setTimeout(() => slider.wrapper.classList.remove('incorrect'), 520);
         }
       });
-      context.updateStatus('Phasing drifts. Keep each coil within ±2 of its target.');
+      context.updateStatus('Phasing drifts. Align each coil to its precise frequency.');
     }
   });
 
