@@ -131,7 +131,7 @@ body.intro-active {
   z-index: 4000;
   pointer-events: auto;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   padding: 6vh 6vw 10vh;
   background: linear-gradient(180deg, rgba(4, 10, 12, 0.94), rgba(3, 7, 9, 0.86));
@@ -142,6 +142,16 @@ body.intro-active {
   text-align: center;
   overflow: hidden;
   transition: opacity 820ms ease, filter 820ms ease;
+}
+
+.intro-overlay.is-idle {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-overlay.is-idle .intro-scroll {
+  animation: none;
 }
 
 .intro-perspective {
@@ -162,7 +172,7 @@ body.intro-active {
   transform-origin: 50% 100%;
   animation: introScroll 250s linear forwards;
   max-width: 100%;
-  transform: rotateX(32deg) translate3d(0, 60vh, 0);
+  transform: rotateX(30deg) translate3d(0, 90vh, 0);
 }
 
 .intro-scroll p {
@@ -243,8 +253,8 @@ body.intro-active {
 
 .skip-intro {
   position: absolute;
-  right: clamp(1.8rem, 4vw, 3rem);
-  bottom: clamp(1.4rem, 3vw, 2.8rem);
+  right: clamp(1.5rem, 3vw, 3rem);
+  bottom: clamp(1.2rem, 3vw, 2.6rem);
   pointer-events: auto;
   text-transform: uppercase;
   letter-spacing: 0.24em;
@@ -260,10 +270,15 @@ body.intro-active {
 
 @keyframes introScroll {
   0% {
-    transform: rotateX(32deg) translate3d(0, 60vh, 0);
+    transform: rotateX(30deg) translate3d(0, 90vh, 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
   }
   100% {
-    transform: rotateX(32deg) translate3d(0, -240vh, 0);
+    transform: rotateX(30deg) translate3d(0, -240vh, 0);
+    opacity: 1;
   }
 }
 
