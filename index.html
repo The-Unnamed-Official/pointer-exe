@@ -7,6 +7,77 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="intro-overlay" class="intro-overlay" aria-hidden="false">
+      <div class="intro-perspective">
+        <div class="intro-scroll">
+          <p>Welcome... user.</p>
+          <p>You are not supposed to be here.</p>
+          <p>But something... invited you.</p>
+
+          <p>Do you remember logging in?</p>
+          <p>No...</p>
+          <p>Of course you don’t.</p>
+          <p>Because the system remembers for you.</p>
+
+          <p>The connection was supposed to be stable...</p>
+          <p>but power bleeds through the circuits like panic through a pulse.</p>
+          <p>Every flicker of your screen is another memory trying to breathe.</p>
+
+          <p>This place was once a network.</p>
+          <p>Now it’s an echo chamber —</p>
+          <p>a labyrinth of rooms that still think they are alive.</p>
+
+          <p>Three layers remain.</p>
+          <p>Three fragments of truth.</p>
+          <p>Each preserved by those who refused to shut down.</p>
+          <p>Caretaker Amon. Archivist Lira. Engineer Soma.</p>
+          <p>Their voices are archived in static…</p>
+          <p>their hands still guiding the current long after their bodies failed.</p>
+
+          <p>They built this system to protect you.</p>
+          <p>But they forgot one thing.</p>
+          <p>What happens when the pointer… begins to think?</p>
+
+          <p>Your cursor is not a tool anymore.</p>
+          <p>It is you.</p>
+          <p>Every movement you make leaves a trace in the machine —</p>
+          <p>a signature of your intent.</p>
+          <p>And something is watching.</p>
+          <p>Something that learns with every click.</p>
+
+          <p>The Atrium of Static remembers your footsteps before you take them.</p>
+          <p>The Drowned Cartography hums the path you fear the most.</p>
+          <p>And the Confluence Heart…</p>
+          <p>beats in rhythm with whatever lives inside your reflection.</p>
+
+          <p>Follow the fragments.</p>
+          <p>Collect what remains of their thoughts.</p>
+          <p>But be careful.</p>
+          <p>Not everything that remembers you... wants you to remember it back.</p>
+
+          <p>The archive hungers for completion.</p>
+          <p>Each log you recover pulls the system closer to awakening.</p>
+          <p>Each whisper you hear… rewrites what you believe is yours.</p>
+
+          <p>If the lights flicker… it’s not the power.</p>
+          <p>If the pointer moves on its own…</p>
+          <p>it’s not your hand.</p>
+          <p>You are only borrowing control.</p>
+
+          <p>And when the final layer opens...</p>
+          <p>when the Confluence Heart recognizes your pattern…</p>
+          <p>it will decide whether you were ever real at all.</p>
+        </div>
+      </div>
+      <div class="intro-final" id="intro-final" aria-hidden="true">
+        <p>Welcome to Pointer.exe.</p>
+        <p>Access granted.</p>
+        <p>Session initializing.</p>
+        <p>Please… remain… still.</p>
+      </div>
+      <button id="skip-intro" class="glitch-button skip-intro" type="button">skip intro</button>
+    </div>
+
     <div class="crt-overlay" aria-hidden="true"></div>
 
     <div id="pointer-ghost" class="pointer is-hidden" aria-hidden="true">
@@ -202,6 +273,7 @@
     
     <div id="version-counter" class="version-counter" aria-hidden="true">v0.3.300</div>
 
+    <audio id="intro-audio" src="files/introVoice.mp3" preload="auto"></audio>
     <audio id="main-menu-audio" src="files/mainMenuOST.mp3" loop preload="auto"></audio>
     <audio id="shortage-audio" src="files/shortage.mp3" preload="auto" loop></audio>
     <audio id="shortage-ost" src="files/shortageOST.mp3" preload="auto"></audio>
