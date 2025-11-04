@@ -385,6 +385,18 @@ let gameActive = false;
 let pointerEnabled = true;
 let pointerAnimationActive = false;
 let pointerSuspended = false;
+
+const pointerAutopilotState = {
+  active: false,
+  timeoutId: null,
+  startTime: 0,
+  duration: 0,
+  centerX: 0,
+  centerY: 0,
+  radius: 0,
+  direction: 1,
+  angleOffset: 0,
+};
 let isPaused = false;
 let powerOffline = false;
 let currentEncounterNode = null;
@@ -470,37 +482,85 @@ function prepareIntroFullscreen() {
 }
 
 function teardownIntroFullscreen() {
-  const finalize = () => {
-    unlockIntroViewportUnit();
-    introFullscreenState.wasFullscreenBeforeIntro = false;
-  };
-  if (!introFullscreenState.wasFullscreenBeforeIntro && getFullscreenElement()) {
-    const exit =
-      document.exitFullscreen ||
-      document.webkitExitFullscreen ||
-      document.mozCancelFullScreen ||
-      document.msExitFullscreen;
-    if (!exit) {
-      finalize();
-      return;
-    }
-    try {
-      const result = exit.call(document);
-      if (result && typeof result.then === 'function') {
-        result.then(finalize).catch(finalize);
-      } else {
-        finalize();
-      }
-    } catch (error) {
-      finalize();
-    }
-    return;
-  }
-  finalize();
+  unlockIntroViewportUnit();
+  introFullscreenState.wasFullscreenBeforeIntro = false;
 }
 
 const pointerTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 const pointerPosition = { x: pointerTarget.x, y: pointerTarget.y };
+
+function cancelPointerAutopilot() {
+  if (pointerAutopilotState.timeoutId) {
+    clearTimeout(pointerAutopilotState.timeoutId);
+    pointerAutopilotState.timeoutId = null;
+  }
+  pointerAutopilotState.active = false;
+}
+
+function schedulePointerAutopilot() {
+  if (pointerAutopilotState.active || pointerAutopilotState.timeoutId) return;
+  if (!gameActive || !pointerEnabled || pointerSuspended) return;
+  const delay = 6000 + Math.random() * 10000;
+  pointerAutopilotState.timeoutId = setTimeout(() => {
+    pointerAutopilotState.timeoutId = null;
+    startPointerAutopilot();
+  }, delay);
+}
+
+function startPointerAutopilot() {
+  if (!gameActive || !pointerEnabled || pointerSuspended || pointerAutopilotState.active) {
+    schedulePointerAutopilot();
+    return;
+  }
+  pointerAutopilotState.active = true;
+  pointerAutopilotState.startTime = performance.now();
+  pointerAutopilotState.duration = 900 + Math.random() * 600;
+  pointerAutopilotState.centerX = pointerPosition.x;
+  pointerAutopilotState.centerY = pointerPosition.y;
+  pointerAutopilotState.radius = 12 + Math.random() * 16;
+  pointerAutopilotState.direction = Math.random() > 0.5 ? 1 : -1;
+  pointerAutopilotState.angleOffset = Math.random() * Math.PI * 2;
+}
+
+function stopPointerAutopilot() {
+  pointerAutopilotState.active = false;
+  pointerAutopilotState.startTime = 0;
+  pointerAutopilotState.duration = 0;
+  schedulePointerAutopilot();
+}
+
+function resolvePointerAnimationTarget(timestamp) {
+  if (!timestamp) {
+    timestamp = performance.now();
+  }
+  if (pointerAutopilotState.active) {
+    if (!gameActive || !pointerEnabled || pointerSuspended) {
+      cancelPointerAutopilot();
+      return pointerTarget;
+    }
+    const elapsed = timestamp - pointerAutopilotState.startTime;
+    if (elapsed >= pointerAutopilotState.duration) {
+      stopPointerAutopilot();
+      return pointerTarget;
+    }
+    const progress = elapsed / pointerAutopilotState.duration;
+    const angle =
+      pointerAutopilotState.angleOffset +
+      pointerAutopilotState.direction * progress * Math.PI * 2;
+    const decay = 1 - progress * 0.4;
+    const x =
+      pointerAutopilotState.centerX +
+      Math.cos(angle) * pointerAutopilotState.radius * decay;
+    const y =
+      pointerAutopilotState.centerY +
+      Math.sin(angle) * pointerAutopilotState.radius * decay;
+    return {
+      x: Math.min(window.innerWidth, Math.max(0, x)),
+      y: Math.min(window.innerHeight, Math.max(0, y)),
+    };
+  }
+  return pointerTarget;
+}
 
 function randomSessionLabel() {
   return Math.floor(Math.random() * 0xfff)
@@ -542,8 +602,10 @@ function refreshPointerVisibility() {
   if (pointerEnabled && gameActive && !pointerSuspended) {
     pointerGhost.classList.remove('is-hidden');
     ensurePointerAnimation();
+    schedulePointerAutopilot();
   } else {
     pointerGhost.classList.add('is-hidden');
+    cancelPointerAutopilot();
   }
   document.body?.classList.toggle('hide-cursor', pointerEnabled && gameActive && !pointerSuspended);
 }
@@ -551,13 +613,15 @@ function refreshPointerVisibility() {
 function ensurePointerAnimation() {
   if (pointerAnimationActive) return;
   pointerAnimationActive = true;
-  const animate = () => {
+  const animate = (timestamp) => {
     if (!pointerEnabled || !gameActive || pointerSuspended) {
       pointerAnimationActive = false;
+      cancelPointerAutopilot();
       return;
     }
-    pointerPosition.x += (pointerTarget.x - pointerPosition.x) * 0.18;
-    pointerPosition.y += (pointerTarget.y - pointerPosition.y) * 0.18;
+    const target = resolvePointerAnimationTarget(timestamp);
+    pointerPosition.x += (target.x - pointerPosition.x) * 0.18;
+    pointerPosition.y += (target.y - pointerPosition.y) * 0.18;
     pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
     requestAnimationFrame(animate);
   };
@@ -1647,6 +1711,13 @@ shortageOverlay?.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (introActive) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    return;
+  }
   if (event.key === 'Escape') {
     togglePreferences();
   }
