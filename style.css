@@ -1668,19 +1668,27 @@ body.static-muted .crt-overlay {
   background-repeat: no-repeat;
   background-size: 100% 100%, 1.25rem;
   background-position: center, right 1.15rem center;
-  box-shadow: inset 0 0 0 0 rgba(94, 242, 211, 0.2);
+  box-shadow:
+    inset 0 0 0 1px rgba(94, 242, 211, 0.18),
+    0 0 14px rgba(94, 242, 211, 0.14);
+  backdrop-filter: blur(4px);
+  color-scheme: dark;
 }
 
 .challenge-input:hover {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   background: linear-gradient(180deg, rgba(8, 18, 20, 0.96), rgba(5, 12, 14, 0.88));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .challenge-input:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent) 75%, transparent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .challenge-input.fault {
@@ -1892,10 +1900,120 @@ body.static-muted .crt-overlay {
   background: rgba(5, 12, 14, 0.85);
 }
 
+.settings-option.volume-option {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.option-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
 .option-label {
   text-transform: uppercase;
   font-size: 0.85rem;
   letter-spacing: 0.25em;
+}
+
+.volume-value {
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.slider-shell {
+  width: 100%;
+}
+
+.volume-slider {
+  --volume-fill: 80%;
+  width: 100%;
+  display: block;
+  appearance: none;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent) 75%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 65%, transparent) var(--volume-fill, 80%),
+      rgba(6, 16, 18, 0.85) var(--volume-fill, 80%),
+      rgba(6, 16, 18, 0.85) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 18px color-mix(in srgb, var(--accent) 25%, transparent);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.volume-slider:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 75%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 22px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.volume-slider:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 20px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  border: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 85%, transparent);
+  background: color-mix(in srgb, var(--accent) 90%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 50%, transparent);
+  margin-top: -4px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.volume-slider:active::-webkit-slider-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+.volume-slider::-moz-range-track {
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  border: none;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 85%, transparent);
+  background: color-mix(in srgb, var(--accent) 90%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 50%, transparent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.volume-slider:active::-moz-range-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
 .glitch-switch {

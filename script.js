@@ -8,6 +8,8 @@ const preferenceButtons = document.querySelectorAll('[data-action="preferences"]
 const settingsOverlay = document.querySelector('#settings-overlay');
 const closeSettingsButton = document.querySelector('[data-action="close-settings"]');
 const applySettingsButton = document.querySelector('[data-action="apply-settings"]');
+const volumeSlider = document.querySelector('#volume-slider');
+const volumeValueLabel = document.querySelector('#volume-value');
 const pointerSwitch = document.querySelector('#pointer-switch');
 const staticSwitch = document.querySelector('#static-switch');
 const pointerGhost = document.querySelector('#pointer-ghost');
@@ -1700,11 +1702,12 @@ let stalkerEntityRect = null;
 
 let finalPuzzleState = null;
 
-const FLICKER_MIN_DELAY_MS = 5000;
-const FLICKER_MAX_DELAY_MS = 3 * 60 * 1000;
-const FLICKER_FAIL_THRESHOLD_MS = 8000;
-const EYES_REQUIRED_HOLD_MS = 5000;
+const FLICKER_MIN_DELAY_MS = 20000;
+const FLICKER_MAX_DELAY_MS = 90000;
+const FLICKER_FAIL_THRESHOLD_MS = 12000;
+const EYES_REQUIRED_HOLD_MS = 4000;
 const LIGHTS_AUDIO_FADE_MS = 5 * 60 * 1000;
+const DEFAULT_MASTER_VOLUME = 0.8;
 const LIGHTS_AUDIO_VOLUME = 0.85;
 let flickerTimeout = null;
 let flickerActive = false;
@@ -1716,6 +1719,8 @@ let lightsAudioFadeRaf = null;
 let lightsAudioFadeStart = 0;
 let lightsAudioFadeDuration = 0;
 let lightsAudioStartVolume = 0;
+let masterVolume = DEFAULT_MASTER_VOLUME;
+const audioBaseVolumes = new Map();
 
 const PARANOIA_HOLD_THRESHOLD_MS = 2000;
 const PARANOIA_DURATION_MS = 60 * 1000;
@@ -1952,6 +1957,61 @@ function setScreen(screen) {
   }
 }
 
+function clamp01(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+function computeVolume(baseVolume) {
+  if (!Number.isFinite(baseVolume)) {
+    return 0;
+  }
+  const normalizedBase = Math.max(0, baseVolume);
+  return Math.min(1, normalizedBase * masterVolume);
+}
+
+function setAudioVolume(audio, baseVolume) {
+  if (!audio) return;
+  audio.volume = computeVolume(baseVolume);
+}
+
+function registerBaseVolume(audio, baseVolume) {
+  if (!audio) return;
+  audioBaseVolumes.set(audio, baseVolume);
+  setAudioVolume(audio, baseVolume);
+}
+
+function refreshRegisteredAudioVolumes() {
+  audioBaseVolumes.forEach((baseVolume, audio) => {
+    setAudioVolume(audio, baseVolume);
+  });
+}
+
+function setMasterVolume(value, { persist = true } = {}) {
+  const numeric = Number(value);
+  const normalized = numeric === null || Number.isNaN(numeric)
+    ? DEFAULT_MASTER_VOLUME
+    : clamp01(numeric);
+  masterVolume = normalized;
+  if (volumeSlider) {
+    const sliderValue = Math.round(normalized * 100);
+    if (Number(volumeSlider.value) !== sliderValue) {
+      volumeSlider.value = String(sliderValue);
+    }
+    volumeSlider.style.setProperty('--volume-fill', `${sliderValue}%`);
+  }
+  if (volumeValueLabel) {
+    volumeValueLabel.textContent = `${Math.round(normalized * 100)}%`;
+  }
+  refreshRegisteredAudioVolumes();
+  if (persist) {
+    localStorage.setItem('master-volume', normalized.toString());
+  }
+  return normalized;
+}
+
 function updatePointerPreference(value) {
   pointerEnabled = value;
   pointerSwitch.checked = value;
@@ -2024,6 +2084,17 @@ document.addEventListener('pointermove', (event) => {
 function setupFromStorage() {
   const storedPointer = localStorage.getItem('pointer-enabled');
   const storedStatic = localStorage.getItem('static-enabled');
+  registerBaseVolume(mainMenuAudio, 0.7);
+  registerBaseVolume(introAudio, 0.9);
+  registerBaseVolume(shortageAudio, 0.65);
+  registerBaseVolume(shortageOST, 0.8);
+  registerBaseVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
+  const storedVolume = localStorage.getItem('master-volume');
+  const parsedVolume = storedVolume !== null ? Number(storedVolume) : DEFAULT_MASTER_VOLUME;
+  const normalizedVolume = Number.isFinite(parsedVolume)
+    ? clamp01(parsedVolume)
+    : DEFAULT_MASTER_VOLUME;
+  setMasterVolume(normalizedVolume, { persist: false });
   updatePointerPreference(storedPointer !== '0');
   updateStaticPreference(storedStatic !== '0');
   pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
@@ -2076,7 +2147,7 @@ function markExplorationPowerDown(active) {
 function playOneShot(audio, { volume = 1 } = {}) {
   if (!audio) return;
   audio.currentTime = 0;
-  audio.volume = volume;
+  setAudioVolume(audio, volume);
   audio.play().catch(() => {});
 }
 
@@ -2438,7 +2509,7 @@ function stopLightsOutAudio() {
   stopLightsAudioFade();
   lightsOutAudio.pause();
   lightsOutAudio.currentTime = 0;
-  lightsOutAudio.volume = LIGHTS_AUDIO_VOLUME;
+  setAudioVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
 }
 
 function startLightsAudioFade() {
@@ -2446,7 +2517,8 @@ function startLightsAudioFade() {
   stopLightsAudioFade();
   lightsAudioFadeStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
   lightsAudioFadeDuration = LIGHTS_AUDIO_FADE_MS;
-  lightsAudioStartVolume = lightsOutAudio.volume || LIGHTS_AUDIO_VOLUME;
+  lightsAudioStartVolume =
+    lightsOutAudio.volume || computeVolume(LIGHTS_AUDIO_VOLUME);
   const step = () => {
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const elapsed = now - lightsAudioFadeStart;
@@ -2459,7 +2531,7 @@ function startLightsAudioFade() {
       stopLightsAudioFade();
       lightsOutAudio.pause();
       lightsOutAudio.currentTime = 0;
-      lightsOutAudio.volume = LIGHTS_AUDIO_VOLUME;
+      setAudioVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
     }
   };
   lightsAudioFadeRaf = requestAnimationFrame(step);
@@ -2519,11 +2591,11 @@ function triggerLightsFlicker() {
   if (lightsOutAudio) {
     stopLightsAudioFade();
     lightsOutAudio.currentTime = 0;
-    lightsOutAudio.volume = LIGHTS_AUDIO_VOLUME;
+    setAudioVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
     lightsOutAudio.loop = true;
     lightsOutAudio.play().catch(() => {});
   }
-  setStatus('Power bleeds. Hold H to close your eyes.', { duration: 4200 });
+  setStatus('Power bleeds. Hold H for four seconds to seal your eyes.', { duration: 4200 });
   flickerFailTimeout = setTimeout(() => failLightsFlicker(), FLICKER_FAIL_THRESHOLD_MS);
 }
 
@@ -2568,7 +2640,7 @@ function beginEyesHold() {
   eyesHoldActive = true;
   eyesHoldStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
   setOverlayState(eyesOverlay, true);
-  setStatus('Eyes sealed. Hold for five seconds.', { duration: 2200 });
+  setStatus('Eyes sealed. Hold for four seconds.', { duration: 2200 });
   requestThreatMonitor();
 }
 
@@ -3163,7 +3235,7 @@ function showThankYouScreen() {
 
 function playMainMenuAudio() {
   if (!mainMenuAudio) return;
-  mainMenuAudio.volume = 0.7;
+  setAudioVolume(mainMenuAudio, 0.7);
   mainMenuAudio.play().catch(() => {});
 }
 
@@ -3176,7 +3248,7 @@ function stopMainMenuAudio() {
 function playIntroAudio() {
   if (!introAudio) return;
   introAudio.currentTime = 0;
-  introAudio.volume = 0.9;
+  setAudioVolume(introAudio, 0.9);
   introAudio.play().catch(() => {});
 }
 
@@ -3288,7 +3360,7 @@ function startIntroSequence({ launchGame = false } = {}) {
 
 function playShortageAmbient() {
   if (!shortageAudio) return;
-  shortageAudio.volume = 0.65;
+  setAudioVolume(shortageAudio, 0.65);
   shortageAudio.play().catch(() => {});
 }
 
@@ -3300,7 +3372,7 @@ function stopShortageAmbient() {
 
 function playShortageScore() {
   if (!shortageOST) return;
-  shortageOST.volume = 0.8;
+  setAudioVolume(shortageOST, 0.8);
   shortageOST.play().catch(() => {});
 }
 
@@ -4220,6 +4292,7 @@ function revealFinalLore() {
 }
 
 function triggerEnvironmentFailure(message) {
+  dismissPreferencesForFailure();
   hideTutorialOverlay();
   cancelLightsFlicker();
   cancelEntitySpawn();
@@ -6185,6 +6258,17 @@ function setWatcherLabel(text) {
   watcherLabel.textContent = text;
 }
 
+function dismissPreferencesForFailure() {
+  if (!settingsOverlay) return;
+  if (!settingsOverlay.classList.contains('hidden')) {
+    settingsOverlay.classList.add('hidden');
+  }
+  if (isPaused) {
+    isPaused = false;
+    stopMainMenuAudio();
+  }
+}
+
 function openPreferences() {
   if (!settingsOverlay) return;
   isPaused = true;
@@ -6269,6 +6353,16 @@ pointerSwitch?.addEventListener('change', (event) => {
 staticSwitch?.addEventListener('change', (event) => {
   updateStaticPreference(event.target.checked);
 });
+
+function handleVolumeSliderInput(event) {
+  const rawValue = Number(event.target.value);
+  if (Number.isNaN(rawValue)) return;
+  const persist = event.type === 'change';
+  setMasterVolume(rawValue / 100, { persist });
+}
+
+volumeSlider?.addEventListener('input', handleVolumeSliderInput);
+volumeSlider?.addEventListener('change', handleVolumeSliderInput);
 
 settingsOverlay?.addEventListener('click', (event) => {
   if (event.target === settingsOverlay) {
