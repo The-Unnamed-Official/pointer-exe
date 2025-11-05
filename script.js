@@ -8,12 +8,21 @@ const preferenceButtons = document.querySelectorAll('[data-action="preferences"]
 const settingsOverlay = document.querySelector('#settings-overlay');
 const closeSettingsButton = document.querySelector('[data-action="close-settings"]');
 const applySettingsButton = document.querySelector('[data-action="apply-settings"]');
+const volumeSlider = document.querySelector('#volume-slider');
+const volumeValueLabel = document.querySelector('#volume-value');
 const pointerSwitch = document.querySelector('#pointer-switch');
 const staticSwitch = document.querySelector('#static-switch');
 const pointerGhost = document.querySelector('#pointer-ghost');
+const flickerOverlay = document.querySelector('#flicker-overlay');
+const eyesOverlay = document.querySelector('#eyes-overlay');
+const entityDimOverlay = document.querySelector('#entity-dim-overlay');
+const entityApparition = document.querySelector('#entity-apparition');
 const sessionLabel = document.querySelector('#session-label');
 const flashlightButton = document.querySelector('[data-action="flashlight"]');
 const flashlightIndicator = document.querySelector('#flashlight-indicator');
+const flashlightBeam = document.querySelector('#flashlight-beam');
+const tutorialOverlay = document.querySelector('#tutorial-overlay');
+const tutorialDismissButton = document.querySelector('#tutorial-dismiss');
 
 const introOverlay = document.querySelector('#intro-overlay');
 const skipIntroButton = document.querySelector('#skip-intro');
@@ -75,6 +84,14 @@ const restartRunButton = document.querySelector('[data-action="restart-run"]');
 const mainMenuAudio = document.querySelector('#main-menu-audio');
 const shortageAudio = document.querySelector('#shortage-audio');
 const shortageOST = document.querySelector('#shortage-ost');
+const lightsOutAudio = document.querySelector('#lights-out-audio');
+const flickerAudio = document.querySelector('#flicker-audio');
+const entitySpawnAudio = document.querySelector('#entity-spawn-audio');
+const entityKillAudio = document.querySelector('#entity-kill-audio');
+const flashOnAudio = document.querySelector('#flash-on-audio');
+const flashOffAudio = document.querySelector('#flash-off-audio');
+const flashBrokenAudio = document.querySelector('#flash-broken-audio');
+const flashRepairedAudio = document.querySelector('#flash-repaired-audio');
 
 const defaultStatus = 'trace the map. the archive listens.';
 const defaultWatcherLabel = 'signal steady';
@@ -97,13 +114,6 @@ const levels = [
       'Floor lights sketch three arrows—atrium, atelier, gauntlet. The third pulses impatiently whenever you hesitate.',
       'Ceiling speakers whisper: steady the hum, coax the relays, hide the light. Your breathing is being graded.',
     ],
-    dynamicShortage: {
-      track: 'keys',
-      minProgress: 1,
-      maxProgress: 3,
-      nodeId: 'maintenance-gate',
-      prelude: 'Warning glyphs skate across the tiles; the relays brace for a brownout.',
-    },
     nodes: [
       {
         id: 'reception-well',
@@ -207,7 +217,7 @@ const levels = [
           heading: 'stalled conduit',
           entity: 'maintenance grid',
           text: 'The console hums with atelier and gauntlet relays. Teach it how you plan to reroute power when the grid dips.',
-          effect: 'shortage',
+          effect: 'progress',
           acknowledgeLabel: 'prime relays',
           choices: [
             {
@@ -339,7 +349,8 @@ const levels = [
           heading: 'sputtering core',
           entity: 'power sink',
           text: 'You hear circuits choking on their own coolant. The floor shakes as the level tries to reroute power through your hand.',
-          effect: 'shortage',
+          effect: 'progress',
+          afterStatus: 'Stabilized coolant pulses through the stacks, brightening the submerged corridors.',
         },
         fragment: {
           id: 'fragment-zeta',
@@ -443,7 +454,8 @@ const levels = [
           heading: 'devouring static',
           entity: 'hungry conduit',
           text: 'The spire swallows light until the chamber drops into darkness. Circuits plead through your fingertips for renewal.',
-          effect: 'shortage',
+          effect: 'progress',
+          afterStatus: 'The spire releases stored light, sending a steady pulse through the heart.',
         },
         fragment: {
           id: 'fragment-kappa',
@@ -1660,9 +1672,20 @@ let activeEncounterResolution = null;
 let activeSegmentId = null;
 let activeExplorationView = 'legacy';
 
-const FLASHLIGHT_COOLDOWN_MS = 5200;
+const FLASHLIGHT_BREAK_THRESHOLD_MS = 5000;
+const FLASHLIGHT_REPAIR_MS = 40000;
+const FLASHLIGHT_POINTER_STUN_MS = 10000;
+const FLASHLIGHT_AUTO_DURATION_MS = 1600;
 let flashlightReady = true;
-let flashlightCooldownTimeout = null;
+let flashlightActive = false;
+let flashlightBroken = false;
+let flashlightAutoTimeout = null;
+let flashlightBreakTimeout = null;
+let flashlightRepairTimeout = null;
+let flashlightRepairDeadline = 0;
+let flashlightRepairInterval = null;
+let flashlightPointerStunTimeout = null;
+let pointerLockedByFlashlight = false;
 
 let stalkerAvailable = false;
 let stalkerSegmentId = null;
@@ -1678,6 +1701,57 @@ let stalkerPointerInside = false;
 let stalkerEntityRect = null;
 
 let finalPuzzleState = null;
+
+const FLICKER_MIN_DELAY_MS = 20000;
+const FLICKER_MAX_DELAY_MS = 90000;
+const FLICKER_FAIL_THRESHOLD_MS = 12000;
+const EYES_REQUIRED_HOLD_MS = 4000;
+const LIGHTS_AUDIO_FADE_MS = 4000;
+const DEFAULT_MASTER_VOLUME = 0.8;
+const LIGHTS_AUDIO_VOLUME = 0.85;
+let flickerTimeout = null;
+let flickerActive = false;
+let flickerFailTimeout = null;
+let eyesHoldActive = false;
+let eyesHoldStart = null;
+let eyesHoldRaf = null;
+let lightsAudioFadeRaf = null;
+let lightsAudioFadeStart = 0;
+let lightsAudioFadeDuration = 0;
+let lightsAudioStartVolume = 0;
+let masterVolume = DEFAULT_MASTER_VOLUME;
+const audioBaseVolumes = new Map();
+
+const PARANOIA_HOLD_THRESHOLD_MS = 2000;
+const PARANOIA_DURATION_MS = 60 * 1000;
+const PARANOIA_WIGGLE_AMPLITUDE_PX = 120;
+const PARANOIA_WIGGLE_SPEED = 0.0036;
+const PARANOIA_WIGGLE_VERTICAL_RATIO = 0.68;
+let manualEyesActive = false;
+let manualEyesParanoiaTimeout = null;
+let paranoiaActive = false;
+let paranoiaStartTime = 0;
+let paranoiaPhaseOffset = 0;
+let paranoiaTimeout = null;
+
+const ENTITY_MIN_DELAY_MS = 20 * 1000;
+const ENTITY_MAX_DELAY_MS = 60 * 1000;
+const ENTITY_FAILURE_MS = 10000;
+const ENTITY_EXPOSURE_REQUIRED_MS = 2000;
+const ENTITY_CAPTURE_RADIUS = 80;
+const ENTITY_SHUDDER_RAMP_MS = 320;
+const ENTITY_SHUDDER_DECAY_MS = 420;
+const ENTITY_SHUDDER_MAX_BLUR_PX = 3.4;
+let entitySpawnTimeout = null;
+let entityActive = false;
+let entityFailureTimeout = null;
+let entityExposureStart = null;
+const entityPosition = { x: 0, y: 0 };
+let threatMonitorRaf = null;
+let entityShudderRaf = null;
+let entityShudderIntensity = 0;
+let entityShudderEngaged = false;
+let entityShudderLastTimestamp = null;
 
 const pointerAutopilotState = {
   active: false,
@@ -1721,6 +1795,9 @@ const introFullscreenState = {
   wasFullscreenBeforeIntro: false,
   viewportLocked: false,
 };
+let tutorialVisible = false;
+let tutorialShown = false;
+let pointerLockedByTutorial = false;
 
 const INTRO_TOTAL_MS = 246700;
 const INTRO_FINAL_REVEAL_MS = 226500;
@@ -1888,6 +1965,61 @@ function setScreen(screen) {
   }
 }
 
+function clamp01(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+function computeVolume(baseVolume) {
+  if (!Number.isFinite(baseVolume)) {
+    return 0;
+  }
+  const normalizedBase = Math.max(0, baseVolume);
+  return Math.min(1, normalizedBase * masterVolume);
+}
+
+function setAudioVolume(audio, baseVolume) {
+  if (!audio) return;
+  audio.volume = computeVolume(baseVolume);
+}
+
+function registerBaseVolume(audio, baseVolume) {
+  if (!audio) return;
+  audioBaseVolumes.set(audio, baseVolume);
+  setAudioVolume(audio, baseVolume);
+}
+
+function refreshRegisteredAudioVolumes() {
+  audioBaseVolumes.forEach((baseVolume, audio) => {
+    setAudioVolume(audio, baseVolume);
+  });
+}
+
+function setMasterVolume(value, { persist = true } = {}) {
+  const numeric = Number(value);
+  const normalized = numeric === null || Number.isNaN(numeric)
+    ? DEFAULT_MASTER_VOLUME
+    : clamp01(numeric);
+  masterVolume = normalized;
+  if (volumeSlider) {
+    const sliderValue = Math.round(normalized * 100);
+    if (Number(volumeSlider.value) !== sliderValue) {
+      volumeSlider.value = String(sliderValue);
+    }
+    volumeSlider.style.setProperty('--volume-fill', `${sliderValue}%`);
+  }
+  if (volumeValueLabel) {
+    volumeValueLabel.textContent = `${Math.round(normalized * 100)}%`;
+  }
+  refreshRegisteredAudioVolumes();
+  if (persist) {
+    localStorage.setItem('master-volume', normalized.toString());
+  }
+  return normalized;
+}
+
 function updatePointerPreference(value) {
   pointerEnabled = value;
   pointerSwitch.checked = value;
@@ -1926,7 +2058,20 @@ function ensurePointerAnimation() {
     const target = resolvePointerAnimationTarget(timestamp);
     pointerPosition.x += (target.x - pointerPosition.x) * 0.18;
     pointerPosition.y += (target.y - pointerPosition.y) * 0.18;
-    pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
+    let displayX = pointerPosition.x;
+    let displayY = pointerPosition.y;
+    if (paranoiaActive) {
+      const base = typeof timestamp === 'number' ? timestamp : 0;
+      const elapsed = base - paranoiaStartTime;
+      const phase = elapsed * PARANOIA_WIGGLE_SPEED;
+      const wiggleX = Math.sin(phase + paranoiaPhaseOffset) * PARANOIA_WIGGLE_AMPLITUDE_PX;
+      const wiggleY = Math.sin(phase * 0.6 + paranoiaPhaseOffset * 0.7) *
+        (PARANOIA_WIGGLE_AMPLITUDE_PX * PARANOIA_WIGGLE_VERTICAL_RATIO);
+      displayX += wiggleX;
+      displayY += wiggleY;
+    }
+    pointerGhost.style.transform = `translate3d(${displayX}px, ${displayY}px, 0)`;
+    updateFlashlightBeamPosition(displayX, displayY);
     requestAnimationFrame(animate);
   };
   requestAnimationFrame(animate);
@@ -1939,6 +2084,7 @@ document.addEventListener('pointermove', (event) => {
     pointerPosition.x = event.clientX;
     pointerPosition.y = event.clientY;
     pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
+    updateFlashlightBeamPosition(pointerPosition.x, pointerPosition.y);
   }
   handleStalkerPointer(event);
 });
@@ -1946,9 +2092,21 @@ document.addEventListener('pointermove', (event) => {
 function setupFromStorage() {
   const storedPointer = localStorage.getItem('pointer-enabled');
   const storedStatic = localStorage.getItem('static-enabled');
+  registerBaseVolume(mainMenuAudio, 0.7);
+  registerBaseVolume(introAudio, 0.9);
+  registerBaseVolume(shortageAudio, 0.65);
+  registerBaseVolume(shortageOST, 0.8);
+  registerBaseVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
+  const storedVolume = localStorage.getItem('master-volume');
+  const parsedVolume = storedVolume !== null ? Number(storedVolume) : DEFAULT_MASTER_VOLUME;
+  const normalizedVolume = Number.isFinite(parsedVolume)
+    ? clamp01(parsedVolume)
+    : DEFAULT_MASTER_VOLUME;
+  setMasterVolume(normalizedVolume, { persist: false });
   updatePointerPreference(storedPointer !== '0');
   updateStaticPreference(storedStatic !== '0');
   pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
+  updateFlashlightBeamPosition(pointerPosition.x, pointerPosition.y);
   updateFlashlightIndicator();
 }
 
@@ -1994,45 +2152,310 @@ function markExplorationPowerDown(active) {
   element.classList.toggle('power-down', Boolean(active));
 }
 
+function playOneShot(audio, { volume = 1 } = {}) {
+  if (!audio) return;
+  const instance = audio.cloneNode(true);
+  instance.removeAttribute('id');
+  instance.currentTime = 0;
+  setAudioVolume(instance, volume);
+  instance.play().catch(() => {});
+  instance.addEventListener('ended', () => {
+    instance.src = '';
+  });
+}
+
 function updateFlashlightIndicator() {
   if (!flashlightIndicator) return;
-  if (flashlightReady) {
-    flashlightIndicator.textContent = 'ready';
-    flashlightIndicator.classList.remove('on-cooldown');
+  flashlightIndicator.classList.remove('active', 'on-cooldown', 'offline');
+  if (paranoiaActive) {
+    flashlightIndicator.textContent = 'paranoid';
+    flashlightIndicator.classList.add('on-cooldown', 'offline');
+    return;
+  }
+  if (flashlightActive) {
+    flashlightIndicator.textContent = 'active';
+    flashlightIndicator.classList.add('active');
+  } else if (!flashlightReady) {
+    const remaining = Math.max(0, Math.ceil((flashlightRepairDeadline - Date.now()) / 1000));
+    flashlightIndicator.textContent = remaining > 0 ? `repair ${remaining}s` : 'repairing';
+    flashlightIndicator.classList.add('on-cooldown', 'offline');
   } else {
-    flashlightIndicator.textContent = 'cooling';
-    flashlightIndicator.classList.add('on-cooldown');
+    flashlightIndicator.textContent = 'ready';
   }
 }
 
-function cancelFlashlightCooldown() {
-  if (flashlightCooldownTimeout) {
-    clearTimeout(flashlightCooldownTimeout);
-    flashlightCooldownTimeout = null;
+function setFlashlightBeamActive(active) {
+  if (!flashlightBeam) return;
+  flashlightBeam.setAttribute('aria-hidden', active ? 'false' : 'true');
+  flashlightBeam.classList.toggle('active', !!active);
+}
+
+function updateFlashlightBeamPosition(x = pointerPosition.x, y = pointerPosition.y) {
+  if (!flashlightBeam) return;
+  flashlightBeam.style.setProperty('--pointer-x', `${x}px`);
+  flashlightBeam.style.setProperty('--pointer-y', `${y}px`);
+}
+
+function clearFlashlightAutoTimeout() {
+  if (flashlightAutoTimeout) {
+    clearTimeout(flashlightAutoTimeout);
+    flashlightAutoTimeout = null;
   }
 }
 
-function beginFlashlightCooldown() {
-  cancelFlashlightCooldown();
-  flashlightReady = false;
+function stopFlashlightBreakTimer() {
+  if (flashlightBreakTimeout) {
+    clearTimeout(flashlightBreakTimeout);
+    flashlightBreakTimeout = null;
+  }
+}
+
+function startFlashlightBreakTimer() {
+  stopFlashlightBreakTimer();
+  flashlightBreakTimeout = setTimeout(() => handleFlashlightBreak(), FLASHLIGHT_BREAK_THRESHOLD_MS);
+}
+
+function stopFlashlightRepairTracking() {
+  if (flashlightRepairInterval) {
+    clearInterval(flashlightRepairInterval);
+    flashlightRepairInterval = null;
+  }
+}
+
+function startFlashlightRepairTracking() {
+  stopFlashlightRepairTracking();
+  flashlightRepairInterval = setInterval(() => {
+    if (!flashlightReady) {
+      updateFlashlightIndicator();
+    } else {
+      stopFlashlightRepairTracking();
+    }
+  }, 1000);
+}
+
+function deactivateFlashlight({ silent = false } = {}) {
+  if (!flashlightActive) return;
+  flashlightActive = false;
+  clearFlashlightAutoTimeout();
+  stopFlashlightBreakTimer();
+  setFlashlightBeamActive(false);
+  if (!silent) {
+    playOneShot(flashOffAudio, { volume: 0.85 });
+  }
   updateFlashlightIndicator();
-  flashlightCooldownTimeout = setTimeout(() => {
-    flashlightReady = true;
-    updateFlashlightIndicator();
-  }, FLASHLIGHT_COOLDOWN_MS);
+}
+
+function activateFlashlight({ silent = false, auto = false, duration = null, bypassBreak = false } = {}) {
+  if (!flashlightReady) {
+    return false;
+  }
+  if (flashlightActive) {
+    if (auto && !flashlightAutoTimeout) {
+      const autoDuration = Math.max(200, duration ?? FLASHLIGHT_AUTO_DURATION_MS);
+      flashlightAutoTimeout = setTimeout(() => deactivateFlashlight({ silent: true }), autoDuration);
+    }
+    return true;
+  }
+  flashlightActive = true;
+  if (!silent) {
+    playOneShot(flashOnAudio, { volume: 0.85 });
+  }
+  if (auto) {
+    const autoDuration = Math.max(200, duration ?? FLASHLIGHT_AUTO_DURATION_MS);
+    clearFlashlightAutoTimeout();
+    flashlightAutoTimeout = setTimeout(() => deactivateFlashlight({ silent: true }), autoDuration);
+  } else if (!bypassBreak) {
+    startFlashlightBreakTimer();
+  }
+  setFlashlightBeamActive(true);
+  updateFlashlightBeamPosition();
+  updateFlashlightIndicator();
+  return true;
+}
+
+function handleFlashlightBreak({ silent = false } = {}) {
+  if (flashlightBroken) return;
+  deactivateFlashlight({ silent: true });
+  flashlightBroken = true;
+  flashlightReady = false;
+  flashlightRepairDeadline = Date.now() + FLASHLIGHT_REPAIR_MS;
+  clearTimeout(flashlightRepairTimeout);
+  flashlightRepairTimeout = setTimeout(() => markFlashlightRepaired(), FLASHLIGHT_REPAIR_MS);
+  startFlashlightRepairTracking();
+  updateFlashlightIndicator();
+  if (flashlightPointerStunTimeout) {
+    clearTimeout(flashlightPointerStunTimeout);
+    flashlightPointerStunTimeout = null;
+  }
+  const shouldLockPointer = !pointerSuspended;
+  pointerLockedByFlashlight = shouldLockPointer;
+  if (shouldLockPointer) {
+    pointerSuspended = true;
+    refreshPointerVisibility();
+  }
+  flashlightPointerStunTimeout = setTimeout(() => {
+    flashlightPointerStunTimeout = null;
+    if (pointerLockedByFlashlight) {
+      pointerLockedByFlashlight = false;
+      pointerSuspended = false;
+      refreshPointerVisibility();
+    }
+  }, FLASHLIGHT_POINTER_STUN_MS);
+  if (!silent) {
+    playOneShot(flashBrokenAudio, { volume: 0.9 });
+    setStatus('The flashlight fuse burns out. Wait for the circuit to reset.', { duration: 3600 });
+  }
+}
+
+function markFlashlightRepaired({ silent = false } = {}) {
+  flashlightRepairTimeout = null;
+  flashlightBroken = false;
+  flashlightReady = true;
+  stopFlashlightRepairTracking();
+  updateFlashlightIndicator();
+  if (!silent) {
+    playOneShot(flashRepairedAudio, { volume: 0.85 });
+    setStatus('Flashlight circuit hums back online.', { duration: 2600 });
+  }
 }
 
 function resetFlashlightState() {
-  cancelFlashlightCooldown();
+  deactivateFlashlight({ silent: true });
+  clearFlashlightAutoTimeout();
+  stopFlashlightBreakTimer();
+  stopFlashlightRepairTracking();
+  if (flashlightRepairTimeout) {
+    clearTimeout(flashlightRepairTimeout);
+    flashlightRepairTimeout = null;
+  }
+  if (flashlightPointerStunTimeout) {
+    clearTimeout(flashlightPointerStunTimeout);
+    flashlightPointerStunTimeout = null;
+  }
+  if (pointerLockedByFlashlight) {
+    pointerLockedByFlashlight = false;
+    if (pointerSuspended) {
+      pointerSuspended = false;
+      refreshPointerVisibility();
+    }
+  }
+  flashlightBroken = false;
   flashlightReady = true;
   updateFlashlightIndicator();
 }
 
+function cancelManualEyesParanoiaCheck() {
+  if (manualEyesParanoiaTimeout) {
+    clearTimeout(manualEyesParanoiaTimeout);
+    manualEyesParanoiaTimeout = null;
+  }
+}
+
+function scheduleManualEyesParanoiaCheck() {
+  cancelManualEyesParanoiaCheck();
+  if (!manualEyesActive) return;
+  if (flickerActive || entityActive) return;
+  manualEyesParanoiaTimeout = setTimeout(() => triggerParanoiaFromEyes(), PARANOIA_HOLD_THRESHOLD_MS);
+}
+
+function activateManualEyes() {
+  if (!gameActive) return;
+  if (manualEyesActive) return;
+  if (flickerActive || eyesHoldActive) return;
+  manualEyesActive = true;
+  setOverlayState(eyesOverlay, true);
+  setStatus('Eyes closed. Breathe with the static.', { duration: 2200 });
+  scheduleManualEyesParanoiaCheck();
+}
+
+function deactivateManualEyes({ silent = false } = {}) {
+  if (!manualEyesActive) return;
+  manualEyesActive = false;
+  cancelManualEyesParanoiaCheck();
+  if (!eyesHoldActive) {
+    setOverlayState(eyesOverlay, false);
+  }
+  if (!silent) {
+    setStatus('Eyes open. Focus returns.', { duration: 2000 });
+  }
+}
+
+function toggleManualEyes() {
+  if (manualEyesActive) {
+    deactivateManualEyes();
+  } else {
+    activateManualEyes();
+  }
+}
+
+function triggerParanoiaFromEyes() {
+  manualEyesParanoiaTimeout = null;
+  if (!manualEyesActive) return;
+  if (flickerActive || entityActive) {
+    scheduleManualEyesParanoiaCheck();
+    return;
+  }
+  manualEyesActive = false;
+  if (!eyesHoldActive) {
+    setOverlayState(eyesOverlay, false);
+  }
+  if (flashlightActive) {
+    deactivateFlashlight({ silent: true });
+  }
+  startParanoia();
+  setStatus('Lingering in safe dark warps your focus. Paranoia rattles the pointer.', {
+    duration: 4200,
+  });
+}
+
+function startParanoia() {
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  paranoiaStartTime = now;
+  paranoiaPhaseOffset = Math.random() * Math.PI * 2;
+  if (paranoiaTimeout) {
+    clearTimeout(paranoiaTimeout);
+  }
+  paranoiaTimeout = setTimeout(() => endParanoia(), PARANOIA_DURATION_MS);
+  if (!paranoiaActive) {
+    paranoiaActive = true;
+    document.body?.classList.add('is-paranoid');
+    updateFlashlightIndicator();
+  }
+}
+
+function endParanoia({ silent = false } = {}) {
+  if (paranoiaTimeout) {
+    clearTimeout(paranoiaTimeout);
+    paranoiaTimeout = null;
+  }
+  if (!paranoiaActive) return;
+  paranoiaActive = false;
+  document.body?.classList.remove('is-paranoid');
+  updateFlashlightIndicator();
+  if (!silent) {
+    setStatus('Breathing steadies. Control returns.', { duration: 2600 });
+  }
+}
+
+function resetManualEyesState() {
+  manualEyesActive = false;
+  cancelManualEyesParanoiaCheck();
+  if (!eyesHoldActive) {
+    setOverlayState(eyesOverlay, false);
+  }
+}
+
 function useFlashlight({ silent = false, force = false } = {}) {
   if (!gameActive) return;
+  if (paranoiaActive && !force) {
+    if (!silent) {
+      setStatus('Your hands shake; the flashlight refuses to stay lit.', { duration: 2600 });
+    }
+    return;
+  }
   if (!flashlightReady) {
     if (!silent) {
-      setStatus('flashlight capacitor still cooling.', { duration: 2200 });
+      setStatus('Flashlight circuit offline. Wait for the repair cycle.', { duration: 2600 });
     }
     return;
   }
@@ -2040,12 +2463,486 @@ function useFlashlight({ silent = false, force = false } = {}) {
     setStatus('The hitcher waits for a steady beam. Hold it in place.', { duration: 2600 });
     return;
   }
-  beginFlashlightCooldown();
+  activateFlashlight({ silent, auto: true, duration: FLASHLIGHT_AUTO_DURATION_MS, bypassBreak: true });
   if (stalkerActive) {
     resolveStalker(true, { silent });
   } else if (!silent) {
     setStatus('The beam cuts across the hall; shadows scatter.', { duration: 2400 });
   }
+}
+
+function setOverlayState(element, active) {
+  if (!element) return;
+  if (active) {
+    element.classList.remove('hidden');
+    element.classList.add('active');
+  } else {
+    element.classList.remove('active');
+    element.classList.add('hidden');
+  }
+}
+
+function requestThreatMonitor() {
+  if (threatMonitorRaf) return;
+  threatMonitorRaf = requestAnimationFrame(handleThreatMonitorStep);
+}
+
+function cancelThreatMonitor() {
+  if (threatMonitorRaf) {
+    cancelAnimationFrame(threatMonitorRaf);
+    threatMonitorRaf = null;
+  }
+}
+
+function handleThreatMonitorStep() {
+  threatMonitorRaf = null;
+  if (eyesHoldActive) {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (now - eyesHoldStart >= EYES_REQUIRED_HOLD_MS) {
+      completeEyesHold();
+    }
+  }
+  if (entityActive) {
+    updateEntityExposure();
+  }
+  if (eyesHoldActive || entityActive) {
+    threatMonitorRaf = requestAnimationFrame(handleThreatMonitorStep);
+  }
+}
+
+function stopLightsAudioFade() {
+  if (lightsAudioFadeRaf) {
+    cancelAnimationFrame(lightsAudioFadeRaf);
+    lightsAudioFadeRaf = null;
+  }
+}
+
+function stopLightsOutAudio() {
+  if (!lightsOutAudio) return;
+  stopLightsAudioFade();
+  lightsOutAudio.pause();
+  lightsOutAudio.currentTime = 0;
+  setAudioVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
+}
+
+function startLightsAudioFade() {
+  if (!lightsOutAudio) return;
+  stopLightsAudioFade();
+  lightsAudioFadeStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  lightsAudioFadeDuration = LIGHTS_AUDIO_FADE_MS;
+  lightsAudioStartVolume =
+    lightsOutAudio.volume || computeVolume(LIGHTS_AUDIO_VOLUME);
+  const step = () => {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const elapsed = now - lightsAudioFadeStart;
+    const progress = Math.min(1, elapsed / lightsAudioFadeDuration);
+    const volume = Math.max(0, lightsAudioStartVolume * (1 - progress));
+    lightsOutAudio.volume = volume;
+    if (progress < 1) {
+      lightsAudioFadeRaf = requestAnimationFrame(step);
+    } else {
+      stopLightsAudioFade();
+      lightsOutAudio.pause();
+      lightsOutAudio.currentTime = 0;
+      setAudioVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
+    }
+  };
+  lightsAudioFadeRaf = requestAnimationFrame(step);
+}
+
+function scheduleLightsFlicker() {
+  if (flickerTimeout) {
+    clearTimeout(flickerTimeout);
+    flickerTimeout = null;
+  }
+  if (!gameActive) return;
+  if (currentLevelIndex < 3) return;
+  const delay = FLICKER_MIN_DELAY_MS + Math.random() * (FLICKER_MAX_DELAY_MS - FLICKER_MIN_DELAY_MS);
+  flickerTimeout = setTimeout(() => {
+    flickerTimeout = null;
+    triggerLightsFlicker();
+  }, delay);
+}
+
+function cancelLightsFlicker() {
+  if (flickerTimeout) {
+    clearTimeout(flickerTimeout);
+    flickerTimeout = null;
+  }
+  if (flickerFailTimeout) {
+    clearTimeout(flickerFailTimeout);
+    flickerFailTimeout = null;
+  }
+  flickerActive = false;
+  eyesHoldActive = false;
+  eyesHoldStart = null;
+  resetManualEyesState();
+  setOverlayState(flickerOverlay, false);
+  setOverlayState(eyesOverlay, false);
+  stopLightsAudioFade();
+  stopLightsOutAudio();
+  if (!entityActive) {
+    cancelThreatMonitor();
+  }
+}
+
+function triggerLightsFlicker() {
+  if (flickerActive || !gameActive) {
+    scheduleLightsFlicker();
+    return;
+  }
+  cancelManualEyesParanoiaCheck();
+  if (manualEyesActive) {
+    manualEyesActive = false;
+  }
+  flickerActive = true;
+  setOverlayState(flickerOverlay, true);
+  setOverlayState(eyesOverlay, false);
+  if (flickerAudio) {
+    playOneShot(flickerAudio, { volume: 0.9 });
+  }
+  if (lightsOutAudio) {
+    stopLightsAudioFade();
+    lightsOutAudio.currentTime = 0;
+    setAudioVolume(lightsOutAudio, LIGHTS_AUDIO_VOLUME);
+    lightsOutAudio.loop = true;
+    lightsOutAudio.play().catch(() => {});
+  }
+  setStatus('Power bleeds. Hold H for four seconds to seal your eyes.', { duration: 4200 });
+  flickerFailTimeout = setTimeout(() => failLightsFlicker(), FLICKER_FAIL_THRESHOLD_MS);
+}
+
+function resolveLightsFlicker() {
+  if (!flickerActive) return;
+  flickerActive = false;
+  if (flickerFailTimeout) {
+    clearTimeout(flickerFailTimeout);
+    flickerFailTimeout = null;
+  }
+  eyesHoldActive = false;
+  eyesHoldStart = null;
+  setOverlayState(flickerOverlay, false);
+  setOverlayState(eyesOverlay, false);
+  startLightsAudioFade();
+  scheduleLightsFlicker();
+  if (!entityActive) {
+    cancelThreatMonitor();
+  }
+  setStatus('The surge passes. The lights steady.', { duration: 3600 });
+}
+
+function failLightsFlicker() {
+  if (!flickerActive) return;
+  flickerActive = false;
+  flickerFailTimeout = null;
+  eyesHoldActive = false;
+  eyesHoldStart = null;
+  setOverlayState(flickerOverlay, false);
+  setOverlayState(eyesOverlay, false);
+  stopLightsOutAudio();
+  cancelThreatMonitor();
+  triggerEnvironmentFailure('You kept your eyes open through the surge. The archive severs the link.');
+}
+
+function beginEyesHold() {
+  if (!flickerActive || eyesHoldActive) return;
+  cancelManualEyesParanoiaCheck();
+  if (manualEyesActive) {
+    manualEyesActive = false;
+  }
+  eyesHoldActive = true;
+  eyesHoldStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  setOverlayState(eyesOverlay, true);
+  setStatus('Eyes sealed. Hold for four seconds.', { duration: 2200 });
+  requestThreatMonitor();
+}
+
+function endEyesHold() {
+  if (!eyesHoldActive) return;
+  eyesHoldActive = false;
+  eyesHoldStart = null;
+  setOverlayState(eyesOverlay, false);
+  if (!entityActive) {
+    cancelThreatMonitor();
+  }
+}
+
+function completeEyesHold() {
+  eyesHoldActive = false;
+  eyesHoldStart = null;
+  setOverlayState(eyesOverlay, false);
+  resolveLightsFlicker();
+}
+
+function scheduleEntitySpawn() {
+  if (entitySpawnTimeout) {
+    clearTimeout(entitySpawnTimeout);
+    entitySpawnTimeout = null;
+  }
+  if (!gameActive) return;
+  const delay = ENTITY_MIN_DELAY_MS + Math.random() * (ENTITY_MAX_DELAY_MS - ENTITY_MIN_DELAY_MS);
+  entitySpawnTimeout = setTimeout(() => {
+    entitySpawnTimeout = null;
+    triggerEntitySpawn();
+  }, delay);
+}
+
+function cancelEntitySpawn() {
+  if (entitySpawnTimeout) {
+    clearTimeout(entitySpawnTimeout);
+    entitySpawnTimeout = null;
+  }
+  if (entityFailureTimeout) {
+    clearTimeout(entityFailureTimeout);
+    entityFailureTimeout = null;
+  }
+  entityActive = false;
+  entityExposureStart = null;
+  setOverlayState(entityDimOverlay, false);
+  if (entityApparition) {
+    entityApparition.classList.remove('active');
+    entityApparition.classList.add('hidden');
+    entityApparition.style.transform = 'translate(-9999px, -9999px)';
+  }
+  stopEntityShudder();
+  if (!eyesHoldActive) {
+    cancelThreatMonitor();
+  }
+}
+
+function resetEntityShudder() {
+  if (entityShudderRaf) {
+    cancelAnimationFrame(entityShudderRaf);
+    entityShudderRaf = null;
+  }
+  entityShudderIntensity = 0;
+  entityShudderEngaged = false;
+  entityShudderLastTimestamp = null;
+  if (entityApparition) {
+    entityApparition.classList.remove('glitching');
+    entityApparition.style.removeProperty('--entity-shake-x');
+    entityApparition.style.removeProperty('--entity-shake-y');
+    entityApparition.style.removeProperty('--entity-shake-rot');
+    entityApparition.style.removeProperty('--entity-shake-blur');
+    entityApparition.style.removeProperty('--entity-visibility');
+  }
+}
+
+function stopEntityShudder() {
+  resetEntityShudder();
+}
+
+function ensureEntityShudderLoop() {
+  if (entityShudderRaf || !entityApparition) return;
+  const step = (timestamp) => {
+    entityShudderRaf = null;
+    if (!entityActive && entityShudderIntensity <= 0) {
+      resetEntityShudder();
+      return;
+    }
+    if (entityShudderLastTimestamp === null) {
+      entityShudderLastTimestamp = timestamp;
+    }
+    const delta = Math.max(16, Math.min(120, timestamp - entityShudderLastTimestamp));
+    entityShudderLastTimestamp = timestamp;
+    if (entityShudderEngaged) {
+      entityShudderIntensity = Math.min(
+        1,
+        entityShudderIntensity + delta / ENTITY_SHUDDER_RAMP_MS,
+      );
+    } else if (entityShudderIntensity > 0) {
+      entityShudderIntensity = Math.max(
+        0,
+        entityShudderIntensity - delta / ENTITY_SHUDDER_DECAY_MS,
+      );
+    }
+    applyEntityShudderVisuals();
+    if (!entityActive && entityShudderIntensity <= 0) {
+      resetEntityShudder();
+      return;
+    }
+    entityShudderRaf = requestAnimationFrame(step);
+  };
+  entityShudderRaf = requestAnimationFrame(step);
+}
+
+function applyEntityShudderVisuals() {
+  if (!entityApparition) return;
+  const intensity = Math.max(0, Math.min(1, entityShudderIntensity));
+  const amplitude = intensity * 64;
+  const offsetX = (Math.random() * 2 - 1) * amplitude;
+  const offsetY = (Math.random() * 2 - 1) * amplitude;
+  const rotation = (Math.random() * 2 - 1) * intensity * 24;
+  const blur = intensity * ENTITY_SHUDDER_MAX_BLUR_PX;
+  entityApparition.style.setProperty('--entity-shake-x', `${offsetX.toFixed(2)}px`);
+  entityApparition.style.setProperty('--entity-shake-y', `${offsetY.toFixed(2)}px`);
+  entityApparition.style.setProperty('--entity-shake-rot', `${rotation.toFixed(2)}deg`);
+  entityApparition.style.setProperty('--entity-shake-blur', `${blur.toFixed(2)}px`);
+  const visibility = Math.max(0.05, 1 - intensity * 1.05);
+  entityApparition.style.setProperty('--entity-visibility', visibility.toFixed(3));
+  entityApparition.classList.toggle('glitching', intensity > 0.6);
+}
+
+function setEntityShudderEngaged(active) {
+  const next = Boolean(active);
+  if (entityShudderEngaged === next && entityShudderRaf) {
+    return;
+  }
+  entityShudderEngaged = next;
+  ensureEntityShudderLoop();
+}
+
+function triggerEntitySpawn() {
+  if (entityActive || !gameActive || flickerActive) {
+    scheduleEntitySpawn();
+    return;
+  }
+  cancelManualEyesParanoiaCheck();
+  entityActive = true;
+  entityExposureStart = null;
+  resetEntityShudder();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const margin = 120;
+  const x = margin + Math.random() * Math.max(0, viewportWidth - margin * 2);
+  const y = margin + Math.random() * Math.max(0, viewportHeight - margin * 2);
+  entityPosition.x = x;
+  entityPosition.y = y;
+  if (entityApparition) {
+    entityApparition.style.transform = `translate3d(${Math.round(x - 41)}px, ${Math.round(y - 41)}px, 0)`;
+    entityApparition.classList.remove('hidden');
+    entityApparition.classList.add('active');
+  }
+  setOverlayState(entityDimOverlay, true);
+  ensureEntityShudderLoop();
+  if (entitySpawnAudio) {
+    playOneShot(entitySpawnAudio, { volume: 0.9 });
+  }
+  setStatus('An intrusive echo mirrors you. Hold the beam on it for two seconds.', { duration: 3600 });
+  if (entityFailureTimeout) {
+    clearTimeout(entityFailureTimeout);
+  }
+  entityFailureTimeout = setTimeout(() => triggerEntityFailure(), ENTITY_FAILURE_MS);
+  requestThreatMonitor();
+}
+
+function resolveEntityEncounter(success) {
+  if (!entityActive) return;
+  entityActive = false;
+  if (entityFailureTimeout) {
+    clearTimeout(entityFailureTimeout);
+    entityFailureTimeout = null;
+  }
+  entityExposureStart = null;
+  setOverlayState(entityDimOverlay, false);
+  if (entityApparition) {
+    entityApparition.classList.remove('active');
+    entityApparition.classList.add('hidden');
+    entityApparition.style.transform = 'translate(-9999px, -9999px)';
+  }
+  stopEntityShudder();
+  if (success) {
+    if (entityKillAudio) {
+      playOneShot(entityKillAudio, { volume: 0.5 });
+    }
+    setStatus('The intrusive echo dissolves under the beam.', { duration: 2800 });
+    scheduleEntitySpawn();
+  }
+  if (!eyesHoldActive) {
+    cancelThreatMonitor();
+  }
+}
+
+function triggerEntityFailure() {
+  if (!entityActive) return;
+  entityActive = false;
+  if (entityFailureTimeout) {
+    clearTimeout(entityFailureTimeout);
+    entityFailureTimeout = null;
+  }
+  entityExposureStart = null;
+  setOverlayState(entityDimOverlay, false);
+  if (entityApparition) {
+    entityApparition.classList.remove('active');
+    entityApparition.classList.add('hidden');
+    entityApparition.style.transform = 'translate(-9999px, -9999px)';
+  }
+  stopEntityShudder();
+  cancelThreatMonitor();
+  triggerEnvironmentFailure('The intrusive echo overwrote your input. The trace collapses.');
+}
+
+function updateEntityExposure() {
+  if (!entityActive) return;
+  if (!flashlightActive || !flashlightReady) {
+    entityExposureStart = null;
+    setEntityShudderEngaged(false);
+    return;
+  }
+  const dx = pointerPosition.x - entityPosition.x;
+  const dy = pointerPosition.y - entityPosition.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  if (distance <= ENTITY_CAPTURE_RADIUS) {
+    setEntityShudderEngaged(true);
+    if (entityExposureStart === null) {
+      entityExposureStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    }
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (now - entityExposureStart >= ENTITY_EXPOSURE_REQUIRED_MS) {
+      resolveEntityEncounter(true);
+    }
+  } else {
+    entityExposureStart = null;
+    setEntityShudderEngaged(false);
+  }
+}
+
+function showTutorialOverlay({ allowRepeat = false } = {}) {
+  if (!tutorialOverlay) return;
+  if (tutorialVisible) return;
+  if (!allowRepeat && tutorialShown) return;
+  tutorialVisible = true;
+  tutorialShown = true;
+  tutorialOverlay.classList.remove('hidden');
+  tutorialOverlay.setAttribute('aria-hidden', 'false');
+  if (!pointerSuspended) {
+    pointerLockedByTutorial = true;
+    pointerSuspended = true;
+    refreshPointerVisibility();
+  } else {
+    pointerLockedByTutorial = false;
+  }
+}
+
+function hideTutorialOverlay() {
+  if (!tutorialVisible) return;
+  tutorialVisible = false;
+  tutorialOverlay.classList.add('hidden');
+  tutorialOverlay.setAttribute('aria-hidden', 'true');
+  if (pointerLockedByTutorial) {
+    pointerLockedByTutorial = false;
+    pointerSuspended = false;
+    refreshPointerVisibility();
+  }
+}
+
+function toggleFlashlightFromInput() {
+  if (!gameActive) return;
+  if (paranoiaActive) {
+    setStatus('Your hands shake; the flashlight refuses to stay lit.', { duration: 2600 });
+    return;
+  }
+  if (flashlightActive) {
+    deactivateFlashlight();
+    setStatus('Flashlight dimmed.', { duration: 2000 });
+    return;
+  }
+  if (!flashlightReady) {
+    setStatus('Flashlight circuit offline. Wait for the repair cycle.', { duration: 2600 });
+    return;
+  }
+  activateFlashlight();
+  setStatus('Flashlight humming. Mind the five-second limit.', { duration: 2600 });
 }
 
 function getSegmentRange(segmentId) {
@@ -2189,9 +3086,9 @@ function completeStalkerHold() {
   if (!flashlightReady) {
     updateStalkerProgress(0);
     if (stalkerWarning) {
-      stalkerWarning.textContent = 'The capacitor is dry. Wait for the recharge.';
+      stalkerWarning.textContent = 'The circuit is offline. Wait for the repair.';
     }
-    setStatus('Flashlight capacitor still cooling. The hitcher leans closer.', { duration: 2600 });
+    setStatus('Flashlight circuit offline. The hitcher leans closer.', { duration: 2600 });
     return;
   }
   updateStalkerProgress(1);
@@ -2430,6 +3327,10 @@ function showThankYouScreen() {
   suspendWatchers(true);
   stopShortageAmbient();
   stopShortageScore();
+  cancelLightsFlicker();
+  cancelEntitySpawn();
+  stopLightsOutAudio();
+  hideTutorialOverlay();
   pointerSuspended = false;
   refreshPointerVisibility();
   setScreen('thank-you');
@@ -2437,7 +3338,7 @@ function showThankYouScreen() {
 
 function playMainMenuAudio() {
   if (!mainMenuAudio) return;
-  mainMenuAudio.volume = 0.7;
+  setAudioVolume(mainMenuAudio, 0.7);
   mainMenuAudio.play().catch(() => {});
 }
 
@@ -2450,7 +3351,7 @@ function stopMainMenuAudio() {
 function playIntroAudio() {
   if (!introAudio) return;
   introAudio.currentTime = 0;
-  introAudio.volume = 0.9;
+  setAudioVolume(introAudio, 0.9);
   introAudio.play().catch(() => {});
 }
 
@@ -2562,7 +3463,7 @@ function startIntroSequence({ launchGame = false } = {}) {
 
 function playShortageAmbient() {
   if (!shortageAudio) return;
-  shortageAudio.volume = 0.65;
+  setAudioVolume(shortageAudio, 0.65);
   shortageAudio.play().catch(() => {});
 }
 
@@ -2574,7 +3475,7 @@ function stopShortageAmbient() {
 
 function playShortageScore() {
   if (!shortageOST) return;
-  shortageOST.volume = 0.8;
+  setAudioVolume(shortageOST, 0.8);
   shortageOST.play().catch(() => {});
 }
 
@@ -2595,10 +3496,16 @@ function startGame() {
   shortageHelpState.clear();
   sessionLabel.textContent = randomSessionLabel();
   setScreen('level');
+  hideTutorialOverlay();
+  tutorialVisible = false;
+  tutorialShown = false;
+  pointerLockedByTutorial = false;
   finalSection.classList.add('hidden');
   finalText.textContent = '';
   finalPuzzleButton?.setAttribute('disabled', 'true');
   resetFlashlightState();
+  endParanoia({ silent: true });
+  resetManualEyesState();
   cancelStalkerEvent();
   stalkerAvailable = false;
   stalkerActive = false;
@@ -2610,6 +3517,7 @@ function startGame() {
   pointerPosition.y = pointerTarget.y;
   loadCurrentLevel();
   refreshPointerVisibility();
+  showTutorialOverlay();
 }
 
 function loadCurrentLevel() {
@@ -2619,6 +3527,13 @@ function loadCurrentLevel() {
   activeSegmentId = level.segment ?? null;
   configureStalker(level);
   resetFlashlightState();
+  cancelLightsFlicker();
+  cancelEntitySpawn();
+  stopLightsOutAudio();
+  if (gameActive) {
+    scheduleLightsFlicker();
+    scheduleEntitySpawn();
+  }
 
   document.documentElement.style.setProperty('--accent', level.theme.accent);
   document.documentElement.style.setProperty('--glow', level.theme.glow);
@@ -3479,6 +4394,23 @@ function revealFinalLore() {
   }, 1600);
 }
 
+function triggerEnvironmentFailure(message) {
+  dismissPreferencesForFailure();
+  hideTutorialOverlay();
+  cancelLightsFlicker();
+  cancelEntitySpawn();
+  stopLightsOutAudio();
+  suspendWatchers(true);
+  pointerSuspended = true;
+  refreshPointerVisibility();
+  gameActive = false;
+  powerOffline = false;
+  if (deathCause && typeof message === 'string' && message.length > 0) {
+    deathCause.textContent = message;
+  }
+  deathOverlay.classList.remove('hidden');
+}
+
 function triggerDeath(node) {
   suspendWatchers(true);
   pointerSuspended = true;
@@ -3492,6 +4424,8 @@ function triggerDeath(node) {
 
 function restartLevel() {
   deathOverlay.classList.add('hidden');
+  hideTutorialOverlay();
+  gameActive = true;
   powerOffline = false;
   pendingShortageNode = null;
   pointerSuspended = false;
@@ -3809,12 +4743,12 @@ function createThirdShortageChallengeSet() {
 function createFourthShortageChallengeSet() {
   return [
     {
-      id: 'bone-rhythm',
-      status: 'Tap the vertebrae in the kiln cadence.',
+      id: 'spire-calibration',
+      status: 'Tune each spire coil within tolerance.',
       description:
-        'The ossuary remembers a <span class="highlight">four-beat lullaby</span>. Toggle the beats that glow in the artisan\'s memory.',
-      duration: 68,
-      setup: (context) => renderBoneRhythm(context),
+        'The heart stutters. Align the <span class="highlight">phase sliders</span> to coax a steady pulse.',
+      duration: 72,
+      setup: (context) => renderSpireCalibration(context),
     },
     {
       id: 'lantern-weave',
@@ -3838,12 +4772,12 @@ function createFourthShortageChallengeSet() {
 function createFifthShortageChallengeSet() {
   return [
     {
-      id: 'flashlight-cues',
-      status: 'Replay the anti-hitcher light routine.',
+      id: 'spire-calibration',
+      status: 'Tune each spire coil within tolerance.',
       description:
-        'The hitcher mimics your hesitation. Recreate the <span class="highlight">pulse pattern</span> the tutor taught you.',
-      duration: 74,
-      setup: (context) => renderFlashlightCues(context),
+        'The heart stutters. Align the <span class="highlight">phase sliders</span> to coax a steady pulse.',
+      duration: 72,
+      setup: (context) => renderSpireCalibration(context),
     },
     {
       id: 'hostage-cipher',
@@ -3883,14 +4817,10 @@ const shortageHelpMessages = {
     'Record the vows in sworn order: Amon first, Lira second, Soma third, and pointer.exe last.',
   'echo-weave':
     'Leave the listen, witness, and anchor runes glowing. Extinguish harvest, sever, and drain.',
-  'bone-rhythm':
-    'The lullaby beats on vertebrae one, three, and four. Keep the second vertebra silent.',
   'lantern-weave':
     'Choose the filaments whose frequencies total nineteen: amber (7), violet (9), and ashen (3).',
   'kiln-chord':
     'Set the vents to their ledger marks: north 428°, east 356°, and south 312°.',
-  'flashlight-cues':
-    'Perform the anti-hitcher pattern—three quick pulses, one long sweep, then hold the beam.',
   'hostage-cipher':
     'Assign refusal to the chain voice, counter-oath to the mirror, and escort to the echo.',
   'lumen-lock':
@@ -5431,6 +6361,17 @@ function setWatcherLabel(text) {
   watcherLabel.textContent = text;
 }
 
+function dismissPreferencesForFailure() {
+  if (!settingsOverlay) return;
+  if (!settingsOverlay.classList.contains('hidden')) {
+    settingsOverlay.classList.add('hidden');
+  }
+  if (isPaused) {
+    isPaused = false;
+    stopMainMenuAudio();
+  }
+}
+
 function openPreferences() {
   if (!settingsOverlay) return;
   isPaused = true;
@@ -5484,8 +6425,15 @@ applySettingsButton?.addEventListener('click', () => {
   closePreferences();
 });
 
-flashlightButton?.addEventListener('click', () => {
-  useFlashlight();
+if (flashlightButton) {
+  flashlightButton.addEventListener('click', () => {
+    showTutorialOverlay({ allowRepeat: true });
+  });
+  flashlightButton.setAttribute('title', 'Press F to toggle the flashlight. Click to review the tutorial.');
+}
+
+tutorialDismissButton?.addEventListener('click', () => {
+  hideTutorialOverlay();
 });
 
 abortFinalPuzzleButton?.addEventListener('click', () => {
@@ -5508,6 +6456,16 @@ pointerSwitch?.addEventListener('change', (event) => {
 staticSwitch?.addEventListener('change', (event) => {
   updateStaticPreference(event.target.checked);
 });
+
+function handleVolumeSliderInput(event) {
+  const rawValue = Number(event.target.value);
+  if (Number.isNaN(rawValue)) return;
+  const persist = event.type === 'change';
+  setMasterVolume(rawValue / 100, { persist });
+}
+
+volumeSlider?.addEventListener('input', handleVolumeSliderInput);
+volumeSlider?.addEventListener('change', handleVolumeSliderInput);
 
 settingsOverlay?.addEventListener('click', (event) => {
   if (event.target === settingsOverlay) {
@@ -5547,8 +6505,44 @@ document.addEventListener('keydown', (event) => {
     }
     return;
   }
+  const target = event.target;
+  const tagName = target?.tagName;
+  if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || target?.isContentEditable) {
+    return;
+  }
+  const key = event.key?.toLowerCase();
+  if (key === 'f') {
+    event.preventDefault();
+    if (!event.repeat) {
+      toggleFlashlightFromInput();
+    }
+    return;
+  }
+  if (key === 'h') {
+    event.preventDefault();
+    if (flickerActive) {
+      beginEyesHold();
+    } else if (!event.repeat) {
+      toggleManualEyes();
+    }
+    return;
+  }
   if (event.key === 'Escape') {
+    if (tutorialVisible) {
+      event.preventDefault();
+      hideTutorialOverlay();
+      return;
+    }
     togglePreferences();
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (introActive) return;
+  if (event.key?.toLowerCase() === 'h') {
+    if (flickerActive || eyesHoldActive) {
+      endEyesHold();
+    }
   }
 });
 
@@ -5562,6 +6556,7 @@ window.addEventListener('resize', () => {
   if (!gameActive) return;
   pointerPosition.x = Math.min(window.innerWidth, Math.max(0, pointerPosition.x));
   pointerPosition.y = Math.min(window.innerHeight, Math.max(0, pointerPosition.y));
+  updateFlashlightBeamPosition(pointerPosition.x, pointerPosition.y);
   realignMapLabels();
 });
 

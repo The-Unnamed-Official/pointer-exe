@@ -1,4 +1,6 @@
 # 🖱️ Pointer.exe
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/ea058798-6e11-4eb7-bf7b-d07e6e4012c8" />
+
 
 > **A psychological web horror where *you* are the cursor.**
 
