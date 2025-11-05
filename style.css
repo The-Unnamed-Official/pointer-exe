@@ -1284,12 +1284,53 @@ body.static-muted .crt-overlay {
   background: rgba(3, 8, 9, 0.9);
 }
 
+.encounter-choices {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.encounter-feedback {
+  margin-top: 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted) 30%);
+}
+
+.encounter-feedback.success {
+  color: color-mix(in srgb, var(--accent) 85%, var(--muted) 15%);
+}
+
+.encounter-feedback.error {
+  color: rgba(255, 104, 132, 0.85);
+}
+
 .encounter-fragment {
   margin-top: 1rem;
   color: color-mix(in srgb, var(--accent) 75%, var(--muted) 25%);
   border-top: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   padding-top: 0.75rem;
   line-height: 1.6;
+}
+
+.choice-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.choice-button:disabled::after {
+  opacity: 0;
+}
+
+.modal-header .glitch-button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .modal-content.shortage {

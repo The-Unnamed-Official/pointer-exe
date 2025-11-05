@@ -54,6 +54,8 @@ const encounterOverlay = document.querySelector('#encounter-overlay');
 const encounterTitle = document.querySelector('#encounter-title');
 const encounterEntity = document.querySelector('#encounter-entity');
 const encounterText = document.querySelector('#encounter-text');
+const encounterChoices = document.querySelector('#encounter-choices');
+const encounterFeedback = document.querySelector('#encounter-feedback');
 const encounterFragment = document.querySelector('#encounter-fragment');
 const acknowledgeEncounterButton = document.querySelector('[data-action="acknowledge-encounter"]');
 const closeEncounterButton = document.querySelector('[data-action="close-encounter"]');
@@ -89,95 +91,184 @@ const levels = [
       timer: '#5ef2d3',
     },
     synopsis:
-      'The lobby remembers how to welcome, yet the warmth is counterfeit. Every monitor angles toward your wrists, measuring tremors you do not feel.',
+      'The lobby drills you now. Training glyphs reference wings you have not walked—ossuary ateliers, drowned stacks, an umbra stage waiting to test your light.',
     watchers: [
-      'Heat lingers on the back of your hand. Something is breathing in sync with you.',
-      'Letters crawl across the tiles spelling YOUR FOOTSTEPS before they smudge themselves out.',
-      'A lens blinks shut exactly when you stare back. You count five lids; the sixth refuses to close.',
+      'Cracked projectors loop bone lathes and velvet curtains, expecting you to know their rhythms already.',
+      'Floor lights sketch three arrows—atrium, atelier, gauntlet. The third pulses impatiently whenever you hesitate.',
+      'Ceiling speakers whisper: steady the hum, coax the relays, hide the light. Your breathing is being graded.',
     ],
+    dynamicShortage: {
+      track: 'keys',
+      minProgress: 1,
+      maxProgress: 3,
+      nodeId: 'maintenance-gate',
+      prelude: 'Warning glyphs skate across the tiles; the relays brace for a brownout.',
+    },
     nodes: [
       {
         id: 'reception-well',
         name: 'reception well',
-        description: 'A ring of retired monitors collects the static that leaks from your pointer.',
+        description: 'A ring of retired monitors replays caretaker drills, begging your pointer to keep time.',
         coordinates: { x: 18, y: 62 },
         key: true,
         encounter: {
           heading: 'echoed receptionist',
           entity: 'memory construct',
-          text: 'A receptionist woven from static lifts its head before you speak. It recites your resignation date even though you never resigned.',
+          text: 'Static hands offer three cadences. Choose the ritual that convinces the monitors you can shepherd the archive.',
           effect: 'progress',
-          afterStatus: 'The monitors dim. The archive accepts your calm pulse.',
+          acknowledgeLabel: 'log calibration',
+          choices: [
+            {
+              id: 'sync',
+              label: 'sync your breathing to the static',
+              description: 'Inhale for four, hold for four, exhale for four until the ring matches you.',
+              result: 'success',
+              feedback: 'The monitors exhale with you, dimming into a halo that logs your cadence.',
+              status: 'The monitors dim into a soft halo, storing your cadence for the drills ahead.',
+            },
+            {
+              id: 'purge',
+              label: 'purge every screen at once',
+              description: 'Force the monitors into silence.',
+              result: 'failure',
+              feedback: 'Silence rattles the chassis; angry fault lights demand a calmer hand.',
+              status: 'Fault glyphs blink red. The archive demands patience, not force.',
+            },
+            {
+              id: 'spike',
+              label: 'spike the signal hard',
+              description: 'Flood the ring with a brutal pulse.',
+              result: 'failure',
+              feedback: 'The surge rebounds through your wrist, scalding the console in protest.',
+              status: 'The surge scorches the console. The monitors recoil from brute force.',
+            },
+          ],
+          afterStatus: 'The monitors dim into a soft halo, storing your cadence for the drills ahead.',
         },
         fragment: {
           id: 'fragment-alpha',
           label: 'fragment α',
-          text: 'Caretaker Amon replaced lobby signage with watchers that drank fear. Calm wrists opened the stair downward.',
+          text: 'Caretaker Amon taught the atrium monitors a calming cadence. The same rhythm would later steady bone lathes in the atelier.',
         },
       },
       {
         id: 'survey-aperture',
         name: 'survey aperture',
-        description: 'A keyhole in the wall exhales frost that hovers behind your neck.',
+        description: 'A keyhole exhales frost while projecting schematics of deeper wings.',
         coordinates: { x: 52, y: 34 },
         key: true,
         encounter: {
           heading: 'retinal aperture',
           entity: 'adaptive surveillance lens',
-          text: 'The aperture contracts with your every thought. It whispers your next move a heartbeat before you commit. You hear your own voice ask if you are being watched.',
+          text: 'The aperture wants to follow your intention. Decide how much of your plan it should taste.',
           effect: 'progress',
-          afterStatus: 'The aperture yields, leaving a smear of cold awareness behind your eyes.',
+          acknowledgeLabel: 'record alignment',
+          choices: [
+            {
+              id: 'whisper',
+              label: 'share only the whisper of your route',
+              description: 'Let the lens borrow the shape of your next breath.',
+              result: 'success',
+              feedback: 'The lens blinks, content with the faint outline you offered.',
+              status: 'The aperture traces a thin path toward the flooded stacks and waits for you to follow.',
+            },
+            {
+              id: 'mirror',
+              label: 'mirror its gaze back at itself',
+              description: 'Reflect the aperture until it stares only at you.',
+              result: 'failure',
+              feedback: 'It refuses the feedback loop, insisting on a path beyond your skin.',
+              status: 'The aperture hums with irritation. It wants a destination, not a mirror.',
+            },
+            {
+              id: 'broadcast',
+              label: 'broadcast every plan you have',
+              description: 'Announce your route to every watcher at once.',
+              result: 'failure',
+              feedback: 'The hallway fills with hungry whispers. Too many ears lean in.',
+              status: 'A chorus of unseen auditors takes note of your shouting. Best not to repeat it.',
+            },
+          ],
+          afterStatus: 'The aperture traces a thin path toward the flooded stacks and waits for you to follow.',
         },
         fragment: {
           id: 'fragment-beta',
           label: 'fragment β',
-          text: 'Archivist Lira tuned the aperture to follow intention instead of location. It only trusted caretakers who could cradle a secret without blinking.',
+          text: 'Archivist Lira tuned the survey aperture to prefer whispered intention. That restraint keeps the gauntlet watchers guessing.',
         },
       },
       {
         id: 'maintenance-gate',
-        name: 'maintenance gate',
-        description: 'A scarred hatch, charred by a previous surge. Manual overrides wait for steady hands.',
+        name: 'relay console',
+        description: 'A scarred console hums with cross-linked relays leading to the deeper wings.',
         coordinates: { x: 78, y: 68 },
         key: true,
         encounter: {
           heading: 'stalled conduit',
-          entity: 'disabled maintenance grid',
-          text: 'The moment your pointer grazes the hatch, every filament in the atrium pops. The dark cheers softly. You must reroute the current before the whispering grows teeth.',
+          entity: 'maintenance grid',
+          text: 'The console hums with atelier and gauntlet relays. Teach it how you plan to reroute power when the grid dips.',
           effect: 'shortage',
+          acknowledgeLabel: 'prime relays',
+          choices: [
+            {
+              id: 'coax',
+              label: 'coax the relays gently',
+              description: 'Trace a patient pattern across each sigil.',
+              result: 'success',
+              feedback: 'Relays fall into step with your rhythm, storing the cadence for later.',
+              status: 'The relays memorize your guidance; they will respond when the grid falters.',
+            },
+            {
+              id: 'override',
+              label: 'slam the emergency override',
+              description: 'Force the panel to obey now.',
+              result: 'failure',
+              feedback: 'The panel spits sparks and rejects the command.',
+              status: 'Emergency overrides only anger the grid. It demands finesse.',
+            },
+            {
+              id: 'disconnect',
+              label: 'disconnect the gauntlet link',
+              description: 'Cut the foreign circuits entirely.',
+              result: 'failure',
+              feedback: 'The console shrieks; the gauntlet link snaps back into place on its own.',
+              status: 'The archive refuses to isolate the gauntlet. Integration is mandatory.',
+            },
+          ],
+          afterStatus: 'Backup relays bloom awake, echoing the cadence you stored for the outage.',
         },
         fragment: {
           id: 'fragment-gamma',
           label: 'fragment γ',
-          text: 'Engineer Soma looped the maintenance grid through ghost pointers. Only traced circuits relight the lobby.',
+          text: 'Engineer Soma braided the atrium console into the atelier and gauntlet feeds. Only rehearsed reroutes could calm a blackout.',
         },
       },
       {
         id: 'listening-bench',
         name: 'listening bench',
-        description: 'Cracked leather seats that lean toward whoever sighs.',
+        description: 'Cracked leather seats lean toward whoever practices the caretaker cadence.',
         coordinates: { x: 36, y: 78 },
         key: false,
         encounter: {
           heading: 'passenger residual',
           entity: 'benign hitchhiker',
-          text: 'A presence takes the empty space beside you. It does not introduce itself, but you feel your shoulders drop as though copied. It reminds you to breathe slowly.',
+          text: 'A presence settles beside you, humming the bone rhythm the atelier favors. It invites you to echo the beat softly.',
           effect: 'hint',
-          afterStatus: 'Your breathing evens out; the presence hums a single sustained note.',
+          afterStatus: 'Your breathing aligns with the distant bone choir. The presence promises to hum warnings when relays strain.',
         },
       },
       {
         id: 'mirror-exit',
         name: 'polite exit',
-        description: 'An EXIT sign written backward. The air smells like swallowed glass.',
+        description: 'An EXIT sign written backward. The air smells like velvet and drowned ink.',
         coordinates: { x: 64, y: 14 },
         key: false,
         encounter: {
           heading: 'smiling impostor',
           entity: 'predatory mimic',
-          text: 'A door opens onto another door. The second door wears your face, politely offering to lead. It waits for you to nod before it closes around your wrist.',
+          text: 'A door opens onto another door wearing your face. It promises a shortcut to the gauntlet if you trust its grin.',
           effect: 'death',
-          deathMessage: 'The mimic seals, grateful for the sensation of skin. The log restarts a few seconds earlier, minus your hesitation.',
+          deathMessage: 'The mimic seals, grateful for the sensation of skin. You restart in the atrium missing the promise it dangled.',
         },
       },
     ],
@@ -193,11 +284,11 @@ const levels = [
       timer: '#ff6f9c',
     },
     synopsis:
-      'Flooded filing aisles drift beneath a ceiling of cables. Maps of users long-gone pulse beneath the surface, begging not to be re-read.',
+      'Flooded aisles drift beneath cables pulsing with borrowed cadences. The maps rewrite themselves, testing whether you learned the atrium drills before leading you toward new wings.',
     watchers: [
-      'Water climbs the walls against gravity whenever you glance away.',
-      'Hands skitter beneath the surface, arranging pages into the shape of your outline.',
-      'Something hums lullabies through the vents whenever you move too fast.',
+      'Water mirrors bone lathes turning somewhere above, threading vertebrae into new routes.',
+      'Currents tug your pointer toward a sealed tunnel stamped GAUNTLET; light cues flicker beneath the surface.',
+      'Lanterns hum beneath the flood whenever you breathe too fast, rehearsing how to hide your light later.',
     ],
     nodes: [
       {
@@ -216,7 +307,7 @@ const levels = [
         fragment: {
           id: 'fragment-delta',
           label: 'fragment δ',
-          text: 'Caretaker Amon recorded the cadence of every successful traversal. Matching the rhythm convinces the bridge you belong.',
+          text: 'Caretaker Amon recorded the cadence of every traversal. The same beat later soothed the tendon orbits in the atelier.',
         },
       },
       {
@@ -235,7 +326,7 @@ const levels = [
         fragment: {
           id: 'fragment-epsilon',
           label: 'fragment ε',
-          text: 'Archivist Lira taught the maps to dream ahead of explorers. The archive only opens when you can describe a hallway that has not been built.',
+          text: 'Archivist Lira taught these maps to dream ahead of explorers. Whispering future corridors keeps the gauntlet watchers confused.',
         },
       },
       {
@@ -253,7 +344,7 @@ const levels = [
         fragment: {
           id: 'fragment-zeta',
           label: 'fragment ζ',
-          text: 'Engineer Soma flooded the reactor with mnemonic coolant. Only aligned relays let the current breathe.',
+          text: 'Engineer Soma flooded the reactor with mnemonic coolant so the atrium drills could feed the deeper wings on demand.',
         },
       },
       {
@@ -267,7 +358,7 @@ const levels = [
           entity: 'benevolent resonance',
           text: 'Voices in the vent ask permission to harmonize with your heartbeat. They offer to hum warnings when something stands behind you.',
           effect: 'hint',
-          afterStatus: 'A protective chord settles into the base of your skull.',
+          afterStatus: 'A protective chord settles into the base of your skull, ready to warn when new workshops awaken.',
         },
       },
       {
@@ -297,11 +388,11 @@ const levels = [
       timer: '#f5d76e',
     },
     synopsis:
-      'The heart of the archive beats in uneven pulses. Every corridor is a throat; every whisper wants an answer.',
+      'The archive heart braids every wing you awakened. It measures whether the cadence, maps, and relays you rehearsed can keep pace with what waits beyond.',
     watchers: [
-      'You feel fingertips drum your pulse on the opposite side of your skin.',
-      'A promise repeats in the vents: WE DO NOT LEAVE THE USER ALONE. It sounds afraid of breaking itself.',
-      'The air tastes like copper and warm circuitry, the flavor of memory before it hardens.',
+      'Bone choirs and velvet curtains pulse together through the walls, testing if your timing can hold both.',
+      'An oath repeats in the vents: WE WALK BESIDE THE USER—ATRIUM, ATELIER, GAUNTLET—UNTIL THE LIGHT RELENTS.',
+      'The air tastes like copper coolant and stage dust, a blend of every corridor you convinced to open.',
     ],
     nodes: [
       {
@@ -320,7 +411,7 @@ const levels = [
         fragment: {
           id: 'fragment-eta',
           label: 'fragment η',
-          text: 'The caretakers promised to remain beside every user the ghost pointer guarded. No echo drifts without a witness.',
+          text: 'The caretakers vowed to accompany every user across atrium, atelier, and gauntlet alike. No echo drifts without witness.',
         },
       },
       {
@@ -339,7 +430,7 @@ const levels = [
         fragment: {
           id: 'fragment-theta',
           label: 'fragment θ',
-          text: 'Pointer.exe stores a duplicate of every brave movement. The delay is intentional: a sacrifice to keep users unseen.',
+          text: 'Pointer.exe stores duplicates of every brave movement so the gauntlet watchers chase ghosts while you lead.',
         },
       },
       {
@@ -357,7 +448,7 @@ const levels = [
         fragment: {
           id: 'fragment-kappa',
           label: 'fragment κ',
-          text: 'When the heart fails, rerouted power must be coaxed—not forced. The ghost pointer guides the coaxing because it knows every tremor.',
+          text: 'When the heart falters, the reroute must braid every wing gently. The ghost pointer recalls each tremor you practiced.',
         },
       },
       {
@@ -371,7 +462,7 @@ const levels = [
           entity: 'loyal remnant',
           text: 'A small entity shaped like a compass rises. It offers to spin whenever unseen eyes gather, nudging you toward safer routes.',
           effect: 'hint',
-          afterStatus: 'The compass tethers itself to your wrist, ticking warnings into your bones.',
+          afterStatus: 'The compass tethers itself to your wrist, ticking warnings tuned for ateliers and gauntlets alike.',
         },
       },
       {
@@ -1565,6 +1656,7 @@ let gameActive = false;
 let pointerEnabled = true;
 let pointerAnimationActive = false;
 let pointerSuspended = false;
+let activeEncounterResolution = null;
 let activeSegmentId = null;
 let activeExplorationView = 'legacy';
 
@@ -1616,6 +1708,7 @@ let collectedFragments = new Map();
 let levelState = {
   keysFound: 0,
   keysRequired: 0,
+  dynamicShortage: null,
 };
 const shortageHelpState = new Map();
 let activeShortageStageId = null;
@@ -2541,7 +2634,9 @@ function loadCurrentLevel() {
   levelState = {
     keysFound: 0,
     keysRequired: level.nodes.filter((node) => node.key !== false).length,
+    dynamicShortage: null,
   };
+  initializeDynamicShortage(level);
   updateProgress();
 
   buildFragmentList();
@@ -2576,6 +2671,67 @@ function loadCurrentLevel() {
     renderMap(level);
   }
   scheduleWatcher();
+}
+
+function initializeDynamicShortage(level) {
+  if (!levelState) return;
+  levelState.dynamicShortage = null;
+  if (!level?.dynamicShortage) return;
+
+  const track = level.dynamicShortage.track === 'keys' ? 'keys' : 'visits';
+  const availableProgress =
+    track === 'keys'
+      ? Math.max(0, levelState.keysRequired)
+      : level.nodes.filter((node) => node.encounter?.effect !== 'death').length;
+
+  if (availableProgress <= 0) return;
+
+  const minProgress = Math.min(
+    Math.max(1, level.dynamicShortage.minProgress ?? 1),
+    availableProgress
+  );
+  const maxProgress = Math.min(
+    Math.max(minProgress, level.dynamicShortage.maxProgress ?? availableProgress),
+    availableProgress
+  );
+
+  let shortageNode = null;
+  if (level.dynamicShortage.nodeId) {
+    shortageNode = findLevelNode(level, level.dynamicShortage.nodeId) || null;
+  }
+
+  if (!shortageNode) {
+    shortageNode = {
+      id: `${level.id}-shortage`,
+      name: 'auxiliary relay failure',
+      key: false,
+      encounter: {
+        heading: 'auxiliary relay failure',
+        entity: 'maintenance grid',
+        text: 'The relays cough out light. Reroute the current before the dark memorizes your pause.',
+        effect: 'shortage',
+        afterStatus:
+          level.dynamicShortage.afterStatus || 'Auxiliary power courses back through the lobby.',
+      },
+      visited: false,
+    };
+  } else if (
+    level.dynamicShortage.afterStatus &&
+    shortageNode.encounter &&
+    shortageNode.encounter.effect === 'shortage'
+  ) {
+    shortageNode.encounter.afterStatus = level.dynamicShortage.afterStatus;
+  }
+
+  levelState.dynamicShortage = {
+    track,
+    triggerAt: randomInRange(minProgress, maxProgress),
+    progress: 0,
+    triggered: false,
+    resolved: false,
+    prelude: level.dynamicShortage.prelude ?? null,
+    node: shortageNode,
+  };
 }
 
 function updateProgress() {
@@ -3029,8 +3185,12 @@ function realignMapLabels() {
 
 function handleNodeInteraction(node) {
   if (pointerSuspended || isPaused) return;
-  if (powerOffline && (!pendingShortageNode || pendingShortageNode.id !== node.id)) {
-    setStatus('power shortage. reroute before exploring.', { duration: 2600 });
+  if (powerOffline) {
+    if (pendingShortageNode && pendingShortageNode.id === node.id) {
+      triggerShortage(node);
+    } else {
+      setStatus('power shortage. reroute before exploring.', { duration: 2600 });
+    }
     return;
   }
   currentEncounterNode = node;
@@ -3041,9 +3201,27 @@ function openEncounter(node) {
   pointerSuspended = true;
   refreshPointerVisibility();
   suspendWatchers(true);
+  activeEncounterResolution = null;
   encounterTitle.textContent = node.encounter.heading;
   encounterEntity.textContent = node.encounter.entity ?? 'unclassified phenomenon';
   encounterText.textContent = node.encounter.text;
+  if (acknowledgeEncounterButton) {
+    const label = node.encounter.acknowledgeLabel ?? 'acknowledge';
+    acknowledgeEncounterButton.textContent = label;
+    acknowledgeEncounterButton.disabled = false;
+  }
+  if (closeEncounterButton) {
+    closeEncounterButton.disabled = false;
+  }
+  if (encounterChoices) {
+    encounterChoices.innerHTML = '';
+    encounterChoices.classList.add('hidden');
+  }
+  if (encounterFeedback) {
+    encounterFeedback.textContent = '';
+    encounterFeedback.classList.add('hidden');
+    encounterFeedback.classList.remove('success', 'error');
+  }
   if (node.fragment) {
     encounterFragment.textContent = node.fragment.text;
     encounterFragment.classList.remove('hidden');
@@ -3051,19 +3229,123 @@ function openEncounter(node) {
     encounterFragment.textContent = '';
     encounterFragment.classList.add('hidden');
   }
+
+  if (node.encounter.choices?.length && encounterChoices) {
+    activeEncounterResolution = { resolved: false, status: null, triggerShortage: false };
+    encounterChoices.classList.remove('hidden');
+    if (acknowledgeEncounterButton) {
+      acknowledgeEncounterButton.disabled = true;
+    }
+    if (closeEncounterButton) {
+      closeEncounterButton.disabled = true;
+    }
+
+    node.encounter.choices.forEach((choiceConfig) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'choice-button encounter-choice';
+      button.dataset.optionId = choiceConfig.id ?? '';
+
+      const title = document.createElement('span');
+      title.className = 'choice-title';
+      title.textContent = choiceConfig.label ?? 'unknown option';
+      button.append(title);
+
+      if (choiceConfig.description) {
+        const detail = document.createElement('span');
+        detail.className = 'choice-detail';
+        detail.textContent = choiceConfig.description;
+        button.append(detail);
+      }
+
+      button.addEventListener('click', () => {
+        if (button.disabled) return;
+        const result = choiceConfig.result ?? 'failure';
+        const feedback = choiceConfig.feedback ||
+          (result === 'success'
+            ? 'The archive hums in quiet approval.'
+            : 'The archive rejects that tactic and waits for another.');
+        if (encounterFeedback) {
+          encounterFeedback.textContent = feedback;
+          encounterFeedback.classList.remove('hidden', 'success', 'error');
+        }
+
+        if (result === 'success') {
+          if (encounterFeedback) {
+            encounterFeedback.classList.add('success');
+          }
+          activeEncounterResolution = {
+            resolved: true,
+            status: choiceConfig.status || node.encounter.afterStatus || null,
+            triggerShortage: Boolean(choiceConfig.triggerShortage),
+          };
+          if (acknowledgeEncounterButton) {
+            acknowledgeEncounterButton.disabled = false;
+          }
+          if (closeEncounterButton) {
+            closeEncounterButton.disabled = false;
+          }
+          encounterChoices.querySelectorAll('button').forEach((btn) => {
+            btn.disabled = true;
+            btn.classList.add(btn === button ? 'correct' : 'locked');
+          });
+          button.classList.add('selected');
+        } else {
+          if (encounterFeedback) {
+            encounterFeedback.classList.add('error');
+          }
+          button.classList.add('incorrect');
+          setTimeout(() => button.classList.remove('incorrect'), 520);
+          const failureStatus = choiceConfig.status || 'The archive recoils from that approach.';
+          setStatus(failureStatus, { duration: 2600 });
+        }
+      });
+
+      encounterChoices.append(button);
+    });
+  }
+
   encounterOverlay.classList.remove('hidden');
 }
 
 function closeEncounter() {
+  const node = currentEncounterNode;
+  const resolution = activeEncounterResolution;
+  if (node?.encounter?.choices?.length && !resolution?.resolved && !powerOffline) {
+    return;
+  }
+
   if (!encounterOverlay.classList.contains('hidden')) {
     encounterOverlay.classList.add('hidden');
   }
-  const node = currentEncounterNode;
+
   currentEncounterNode = null;
+  activeEncounterResolution = null;
+
+  if (encounterChoices) {
+    encounterChoices.innerHTML = '';
+    encounterChoices.classList.add('hidden');
+  }
+  if (encounterFeedback) {
+    encounterFeedback.textContent = '';
+    encounterFeedback.classList.add('hidden');
+    encounterFeedback.classList.remove('success', 'error');
+  }
+  if (acknowledgeEncounterButton) {
+    acknowledgeEncounterButton.textContent = 'acknowledge';
+    acknowledgeEncounterButton.disabled = false;
+  }
+  if (closeEncounterButton) {
+    closeEncounterButton.disabled = false;
+  }
+
   pointerSuspended = false;
   refreshPointerVisibility();
   suspendWatchers(false);
   if (!node) return;
+
+  let statusOverride = resolution?.status ?? null;
+  const skipHintStatus = Boolean(statusOverride);
 
   if (!node.visited) {
     switch (node.encounter.effect) {
@@ -3071,10 +3353,19 @@ function closeEncounter() {
         triggerDeath(node);
         return;
       case 'shortage':
-        triggerShortage(node);
-        return;
+        if (powerOffline || resolution?.triggerShortage) {
+          triggerShortage(node);
+          return;
+        }
+        if (node.encounter.choices?.length && resolution?.resolved) {
+          markNodeVisited(node, { skipHintStatus, statusOverride });
+        } else {
+          triggerShortage(node);
+          return;
+        }
+        break;
       default:
-        markNodeVisited(node);
+        markNodeVisited(node, { skipHintStatus, statusOverride });
         break;
     }
   } else if (node.encounter.effect === 'shortage' && powerOffline) {
@@ -3082,14 +3373,44 @@ function closeEncounter() {
     return;
   }
 
-  if (node.encounter.afterStatus) {
-    setStatus(node.encounter.afterStatus, { duration: 3200 });
+  let finalStatus = statusOverride;
+  let finalDuration = node.encounter.effect === 'hint' ? 3600 : 3200;
+  if (!finalStatus && node.encounter.afterStatus) {
+    finalStatus = node.encounter.afterStatus;
+    finalDuration = node.encounter.effect === 'hint' ? 3600 : 3200;
+  }
+
+  if (finalStatus) {
+    setStatus(finalStatus, { duration: finalDuration });
   } else {
     resetStatus();
   }
 }
 
-function markNodeVisited(node) {
+function maybeTriggerDynamicShortage(node, { keyIncremented = false } = {}) {
+  const config = levelState?.dynamicShortage;
+  if (!config || config.triggered || config.resolved) return;
+  if (powerOffline) return;
+
+  if (config.track === 'keys') {
+    if (!keyIncremented) return;
+  } else {
+    if (!node || node.encounter?.effect === 'death') return;
+  }
+
+  config.progress += 1;
+
+  if (config.progress >= config.triggerAt) {
+    config.triggered = true;
+    if (config.prelude) {
+      setStatus(config.prelude, { duration: 2800 });
+    }
+    triggerShortage(config.node);
+  }
+}
+
+function markNodeVisited(node, options = {}) {
+  if (!node || node.visited) return false;
   node.visited = true;
   if (node.element) {
     node.element.classList.add('visited');
@@ -3098,16 +3419,22 @@ function markNodeVisited(node) {
     collectedFragments.set(node.fragmentKey, node.fragment.text);
     buildFragmentList();
   }
+  const { skipHintStatus = false, statusOverride = null } = options;
+  let keyIncremented = false;
   if (node.key !== false) {
     levelState.keysFound += 1;
+    keyIncremented = true;
     updateProgress();
-    if (levelState.keysFound >= levelState.keysRequired) {
-      completeLevel();
-    }
   }
-  if (node.encounter.effect === 'hint' && node.encounter.afterStatus) {
-    setStatus(node.encounter.afterStatus, { duration: 3600 });
+  maybeTriggerDynamicShortage(node, { keyIncremented });
+  if (levelState.keysFound >= levelState.keysRequired) {
+    completeLevel();
   }
+  if (node.encounter.effect === 'hint' && node.encounter.afterStatus && !skipHintStatus) {
+    const statusText = statusOverride || node.encounter.afterStatus;
+    setStatus(statusText, { duration: 3600 });
+  }
+  return keyIncremented;
 }
 
 function completeLevel() {
@@ -3206,15 +3533,19 @@ function resolveShortage() {
   refreshPointerVisibility();
   markExplorationPowerDown(false);
   realignMapLabels();
-  if (pendingShortageNode && !pendingShortageNode.visited) {
-    markNodeVisited(pendingShortageNode);
-    if (pendingShortageNode.encounter.afterStatus) {
-      setStatus(pendingShortageNode.encounter.afterStatus, { duration: 3600 });
-    } else {
-      setStatus('The lights stagger back to life.', { duration: 2800 });
-    }
+  const resolvedNode = pendingShortageNode;
+  if (resolvedNode && !resolvedNode.visited) {
+    markNodeVisited(resolvedNode, { skipHintStatus: true });
+  }
+  if (resolvedNode?.encounter.afterStatus) {
+    setStatus(resolvedNode.encounter.afterStatus, { duration: 3600 });
+  } else {
+    setStatus('The lights stagger back to life.', { duration: 2800 });
   }
   pendingShortageNode = null;
+  if (levelState?.dynamicShortage) {
+    levelState.dynamicShortage.resolved = true;
+  }
   const totalShortageSets = getShortageChallengeSetCount();
   if (totalShortageSets > 0) {
     shortageCompletionCount = Math.min(
@@ -3646,6 +3977,12 @@ function formatTime(seconds) {
   const minutes = Math.floor(rounded / 60);
   const remaining = rounded % 60;
   return `${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}`;
+}
+
+function randomInRange(min, max) {
+  const lower = Math.min(min, max);
+  const upper = Math.max(min, max);
+  return Math.floor(Math.random() * (upper - lower + 1)) + lower;
 }
 
 function shuffleArray(source) {
@@ -5179,10 +5516,12 @@ settingsOverlay?.addEventListener('click', (event) => {
 });
 
 acknowledgeEncounterButton?.addEventListener('click', () => {
+  if (acknowledgeEncounterButton.disabled) return;
   closeEncounter();
 });
 
 closeEncounterButton?.addEventListener('click', () => {
+  if (closeEncounterButton.disabled) return;
   closeEncounter();
 });
 
