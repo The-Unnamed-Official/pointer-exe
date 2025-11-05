@@ -1724,8 +1724,9 @@ const audioBaseVolumes = new Map();
 
 const PARANOIA_HOLD_THRESHOLD_MS = 2000;
 const PARANOIA_DURATION_MS = 60 * 1000;
-const PARANOIA_WIGGLE_AMPLITUDE_PX = 26;
-const PARANOIA_WIGGLE_SPEED = 0.0022;
+const PARANOIA_WIGGLE_AMPLITUDE_PX = 120;
+const PARANOIA_WIGGLE_SPEED = 0.0036;
+const PARANOIA_WIGGLE_VERTICAL_RATIO = 0.68;
 let manualEyesActive = false;
 let manualEyesParanoiaTimeout = null;
 let paranoiaActive = false;
@@ -1738,12 +1739,19 @@ const ENTITY_MAX_DELAY_MS = 60 * 1000;
 const ENTITY_FAILURE_MS = 10000;
 const ENTITY_EXPOSURE_REQUIRED_MS = 2000;
 const ENTITY_CAPTURE_RADIUS = 80;
+const ENTITY_SHUDDER_RAMP_MS = 320;
+const ENTITY_SHUDDER_DECAY_MS = 420;
+const ENTITY_SHUDDER_MAX_BLUR_PX = 3.4;
 let entitySpawnTimeout = null;
 let entityActive = false;
 let entityFailureTimeout = null;
 let entityExposureStart = null;
 const entityPosition = { x: 0, y: 0 };
 let threatMonitorRaf = null;
+let entityShudderRaf = null;
+let entityShudderIntensity = 0;
+let entityShudderEngaged = false;
+let entityShudderLastTimestamp = null;
 
 const pointerAutopilotState = {
   active: false,
@@ -2058,7 +2066,7 @@ function ensurePointerAnimation() {
       const phase = elapsed * PARANOIA_WIGGLE_SPEED;
       const wiggleX = Math.sin(phase + paranoiaPhaseOffset) * PARANOIA_WIGGLE_AMPLITUDE_PX;
       const wiggleY = Math.sin(phase * 0.6 + paranoiaPhaseOffset * 0.7) *
-        (PARANOIA_WIGGLE_AMPLITUDE_PX * 0.35);
+        (PARANOIA_WIGGLE_AMPLITUDE_PX * PARANOIA_WIGGLE_VERTICAL_RATIO);
       displayX += wiggleX;
       displayY += wiggleY;
     }
@@ -2146,9 +2154,14 @@ function markExplorationPowerDown(active) {
 
 function playOneShot(audio, { volume = 1 } = {}) {
   if (!audio) return;
-  audio.currentTime = 0;
-  setAudioVolume(audio, volume);
-  audio.play().catch(() => {});
+  const instance = audio.cloneNode(true);
+  instance.removeAttribute('id');
+  instance.currentTime = 0;
+  setAudioVolume(instance, volume);
+  instance.play().catch(() => {});
+  instance.addEventListener('ended', () => {
+    instance.src = '';
+  });
 }
 
 function updateFlashlightIndicator() {
@@ -2691,9 +2704,92 @@ function cancelEntitySpawn() {
     entityApparition.classList.add('hidden');
     entityApparition.style.transform = 'translate(-9999px, -9999px)';
   }
+  stopEntityShudder();
   if (!eyesHoldActive) {
     cancelThreatMonitor();
   }
+}
+
+function resetEntityShudder() {
+  if (entityShudderRaf) {
+    cancelAnimationFrame(entityShudderRaf);
+    entityShudderRaf = null;
+  }
+  entityShudderIntensity = 0;
+  entityShudderEngaged = false;
+  entityShudderLastTimestamp = null;
+  if (entityApparition) {
+    entityApparition.classList.remove('glitching');
+    entityApparition.style.removeProperty('--entity-shake-x');
+    entityApparition.style.removeProperty('--entity-shake-y');
+    entityApparition.style.removeProperty('--entity-shake-rot');
+    entityApparition.style.removeProperty('--entity-shake-blur');
+    entityApparition.style.removeProperty('--entity-visibility');
+  }
+}
+
+function stopEntityShudder() {
+  resetEntityShudder();
+}
+
+function ensureEntityShudderLoop() {
+  if (entityShudderRaf || !entityApparition) return;
+  const step = (timestamp) => {
+    entityShudderRaf = null;
+    if (!entityActive && entityShudderIntensity <= 0) {
+      resetEntityShudder();
+      return;
+    }
+    if (entityShudderLastTimestamp === null) {
+      entityShudderLastTimestamp = timestamp;
+    }
+    const delta = Math.max(16, Math.min(120, timestamp - entityShudderLastTimestamp));
+    entityShudderLastTimestamp = timestamp;
+    if (entityShudderEngaged) {
+      entityShudderIntensity = Math.min(
+        1,
+        entityShudderIntensity + delta / ENTITY_SHUDDER_RAMP_MS,
+      );
+    } else if (entityShudderIntensity > 0) {
+      entityShudderIntensity = Math.max(
+        0,
+        entityShudderIntensity - delta / ENTITY_SHUDDER_DECAY_MS,
+      );
+    }
+    applyEntityShudderVisuals();
+    if (!entityActive && entityShudderIntensity <= 0) {
+      resetEntityShudder();
+      return;
+    }
+    entityShudderRaf = requestAnimationFrame(step);
+  };
+  entityShudderRaf = requestAnimationFrame(step);
+}
+
+function applyEntityShudderVisuals() {
+  if (!entityApparition) return;
+  const intensity = Math.max(0, Math.min(1, entityShudderIntensity));
+  const amplitude = intensity * 64;
+  const offsetX = (Math.random() * 2 - 1) * amplitude;
+  const offsetY = (Math.random() * 2 - 1) * amplitude;
+  const rotation = (Math.random() * 2 - 1) * intensity * 24;
+  const blur = intensity * ENTITY_SHUDDER_MAX_BLUR_PX;
+  entityApparition.style.setProperty('--entity-shake-x', `${offsetX.toFixed(2)}px`);
+  entityApparition.style.setProperty('--entity-shake-y', `${offsetY.toFixed(2)}px`);
+  entityApparition.style.setProperty('--entity-shake-rot', `${rotation.toFixed(2)}deg`);
+  entityApparition.style.setProperty('--entity-shake-blur', `${blur.toFixed(2)}px`);
+  const visibility = Math.max(0.05, 1 - intensity * 1.05);
+  entityApparition.style.setProperty('--entity-visibility', visibility.toFixed(3));
+  entityApparition.classList.toggle('glitching', intensity > 0.6);
+}
+
+function setEntityShudderEngaged(active) {
+  const next = Boolean(active);
+  if (entityShudderEngaged === next && entityShudderRaf) {
+    return;
+  }
+  entityShudderEngaged = next;
+  ensureEntityShudderLoop();
 }
 
 function triggerEntitySpawn() {
@@ -2704,6 +2800,7 @@ function triggerEntitySpawn() {
   cancelManualEyesParanoiaCheck();
   entityActive = true;
   entityExposureStart = null;
+  resetEntityShudder();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const margin = 120;
@@ -2717,6 +2814,7 @@ function triggerEntitySpawn() {
     entityApparition.classList.add('active');
   }
   setOverlayState(entityDimOverlay, true);
+  ensureEntityShudderLoop();
   if (entitySpawnAudio) {
     playOneShot(entitySpawnAudio, { volume: 0.9 });
   }
@@ -2742,9 +2840,10 @@ function resolveEntityEncounter(success) {
     entityApparition.classList.add('hidden');
     entityApparition.style.transform = 'translate(-9999px, -9999px)';
   }
+  stopEntityShudder();
   if (success) {
     if (entityKillAudio) {
-      playOneShot(entityKillAudio, { volume: 0.85 });
+      playOneShot(entityKillAudio, { volume: 0.5 });
     }
     setStatus('The intrusive echo dissolves under the beam.', { duration: 2800 });
     scheduleEntitySpawn();
@@ -2768,6 +2867,7 @@ function triggerEntityFailure() {
     entityApparition.classList.add('hidden');
     entityApparition.style.transform = 'translate(-9999px, -9999px)';
   }
+  stopEntityShudder();
   cancelThreatMonitor();
   triggerEnvironmentFailure('The intrusive echo overwrote your input. The trace collapses.');
 }
@@ -2776,12 +2876,14 @@ function updateEntityExposure() {
   if (!entityActive) return;
   if (!flashlightActive || !flashlightReady) {
     entityExposureStart = null;
+    setEntityShudderEngaged(false);
     return;
   }
   const dx = pointerPosition.x - entityPosition.x;
   const dy = pointerPosition.y - entityPosition.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
   if (distance <= ENTITY_CAPTURE_RADIUS) {
+    setEntityShudderEngaged(true);
     if (entityExposureStart === null) {
       entityExposureStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
     }
@@ -2791,6 +2893,7 @@ function updateEntityExposure() {
     }
   } else {
     entityExposureStart = null;
+    setEntityShudderEngaged(false);
   }
 }
 
