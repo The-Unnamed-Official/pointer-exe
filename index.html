@@ -163,10 +163,28 @@
 
             <section class="exploration">
               <header>
-                <span>trace map</span>
+                <span id="exploration-label">trace map</span>
                 <span id="watcher-label" class="watcher-label">signal steady</span>
               </header>
-              <div id="map-area" class="map-area" role="application" aria-live="polite"></div>
+              <div class="exploration-stage" id="legacy-stage">
+                <div id="map-area" class="map-area" role="application" aria-live="polite"></div>
+              </div>
+              <div class="exploration-stage hidden" id="atelier-stage" aria-hidden="true">
+                <div
+                  id="atelier-interface"
+                  class="atelier-interface"
+                  role="application"
+                  aria-live="polite"
+                ></div>
+              </div>
+              <div class="exploration-stage hidden" id="gauntlet-stage" aria-hidden="true">
+                <div
+                  id="gauntlet-interface"
+                  class="gauntlet-interface"
+                  role="application"
+                  aria-live="polite"
+                ></div>
+              </div>
               <p id="status-line" class="status-line">trace the map. the archive listens.</p>
             </section>
           </section>
@@ -308,17 +326,27 @@
         <header class="modal-header">
           <div>
             <h2>hostile presence</h2>
-            <p>an umbral hitcher leans in. flash the beam before it binds you.</p>
+            <p>an umbral hitcher leans in. guide the beam with your cursor and hold it steady.</p>
           </div>
         </header>
-        <div class="modal-body">
+        <div class="modal-body stalker-body">
           <p id="stalker-warning">hold steady. the entity waits for the light.</p>
+          <div id="stalker-field" class="stalker-field" role="presentation">
+            <div id="stalker-entity" class="stalker-entity" aria-hidden="true"></div>
+          </div>
+          <p class="stalker-instruction">Move your cursor to bathe the hitcher in light and keep it there.</p>
+          <div
+            id="stalker-progress"
+            class="stalker-progress"
+            role="progressbar"
+            aria-label="flashlight focus"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div class="stalker-progress-bar"></div>
+          </div>
         </div>
-        <footer class="modal-footer">
-          <button class="glitch-button primary" data-action="flash-now" type="button">
-            fire flashlight
-          </button>
-        </footer>
       </div>
     </div>
 
@@ -339,7 +367,7 @@
       </div>
     </div>
 
-    <div id="version-counter" class="version-counter" aria-hidden="true">v0.3.300</div>
+    <div id="version-counter" class="version-counter" aria-hidden="true">v0.3.822</div>
 
     <audio id="intro-audio" src="files/introVoice.mp3" preload="auto"></audio>
     <audio id="main-menu-audio" src="files/mainMenuOST.mp3" loop preload="auto"></audio>

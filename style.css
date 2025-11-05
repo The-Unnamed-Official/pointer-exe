@@ -932,6 +932,256 @@ body.static-muted .crt-overlay {
   animation: watcherPulse 0.45s linear alternate 6;
 }
 
+.exploration-stage {
+  width: 100%;
+}
+
+.atelier-interface,
+.gauntlet-interface {
+  position: relative;
+  min-height: 280px;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  background: rgba(3, 6, 7, 0.75);
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  overflow-y: auto;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.45);
+}
+
+.atelier-interface.power-down,
+.gauntlet-interface.power-down {
+  filter: grayscale(0.8) brightness(0.5);
+}
+
+.atelier-intro,
+.gauntlet-intro {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.atelier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.atelier-card {
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 0.95rem;
+  padding: 1rem;
+  background: rgba(7, 14, 16, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.atelier-card h3 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.atelier-description,
+.atelier-prompt,
+.atelier-status,
+.atelier-fragment {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.atelier-status {
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+.atelier-fragment {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  padding-top: 0.6rem;
+}
+
+.atelier-card.visited {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.atelier-card.completed .choice-button:not(.correct) {
+  opacity: 0.35;
+}
+
+.atelier-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.atelier-option {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.atelier-option.locked,
+.gauntlet-option.locked {
+  opacity: 0.4;
+}
+
+.atelier-option.correct,
+.gauntlet-option.correct {
+  border-color: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+
+.atelier-option .option-label,
+.gauntlet-option .option-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.atelier-observations,
+.gauntlet-observations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  padding-top: 0.9rem;
+}
+
+.atelier-observations h3,
+.gauntlet-observations h3 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.atelier-observation,
+.gauntlet-observation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: rgba(8, 14, 16, 0.85);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  transition: border-color 0.3s ease, transform 0.2s ease;
+}
+
+.atelier-observation:hover,
+.atelier-observation:focus-visible,
+.gauntlet-observation:hover,
+.gauntlet-observation:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  transform: translateY(-2px);
+}
+
+.observation-title {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.7rem;
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.observation-detail {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.gauntlet-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.gauntlet-phase {
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 0.95rem;
+  padding: 1rem 1.1rem;
+  background: rgba(7, 14, 16, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gauntlet-phase.locked {
+  opacity: 0.55;
+}
+
+.gauntlet-phase.visited,
+.gauntlet-phase.completed {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.gauntlet-phase h3 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+.gauntlet-description,
+.gauntlet-prompt,
+.gauntlet-status,
+.gauntlet-fragment {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.gauntlet-status {
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+.gauntlet-fragment {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  padding-top: 0.6rem;
+}
+
+.gauntlet-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.gauntlet-option {
+  align-items: flex-start;
+}
+
+.help-button {
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.challenge-help {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(10, 18, 20, 0.85);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.challenge-help.hidden {
+  display: none;
+}
+
 @keyframes watcherPulse {
   from {
     opacity: 0.35;
@@ -1697,6 +1947,28 @@ body.static-muted .crt-overlay {
 .modal-content.final-puzzle {
   width: min(720px, 100%);
   gap: 1.2rem;
+  max-height: min(90vh, 880px);
+  display: flex;
+}
+
+.modal-content.final-puzzle .modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: calc(min(90vh, 880px) - 6.5rem);
+  padding-right: 0.35rem;
+}
+
+.modal-content.final-puzzle .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content.final-puzzle .modal-body::-webkit-scrollbar-track {
+  background: rgba(4, 8, 10, 0.4);
+}
+
+.modal-content.final-puzzle .modal-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
 }
 
 .final-puzzle-container {

@@ -26,7 +26,13 @@ const progressLabel = document.querySelector('#progress-label');
 const levelLore = document.querySelector('#level-lore');
 const fragmentList = document.querySelector('#fragment-list');
 const mapArea = document.querySelector('#map-area');
+const legacyStage = document.querySelector('#legacy-stage');
+const atelierStage = document.querySelector('#atelier-stage');
+const atelierInterface = document.querySelector('#atelier-interface');
+const gauntletStage = document.querySelector('#gauntlet-stage');
+const gauntletInterface = document.querySelector('#gauntlet-interface');
 const statusLine = document.querySelector('#status-line');
+const explorationLabel = document.querySelector('#exploration-label');
 const watcherLabel = document.querySelector('#watcher-label');
 const finalSection = document.querySelector('#final-revelation');
 const finalText = document.querySelector('#final-text');
@@ -39,7 +45,10 @@ const abortFinalPuzzleButton = document.querySelector('[data-action="abort-final
 
 const stalkerOverlay = document.querySelector('#stalker-overlay');
 const stalkerWarning = document.querySelector('#stalker-warning');
-const flashNowButton = document.querySelector('[data-action="flash-now"]');
+const stalkerField = document.querySelector('#stalker-field');
+const stalkerEntityMarker = document.querySelector('#stalker-entity');
+const stalkerProgress = document.querySelector('#stalker-progress');
+const stalkerProgressBar = stalkerProgress?.querySelector('.stalker-progress-bar');
 
 const encounterOverlay = document.querySelector('#encounter-overlay');
 const encounterTitle = document.querySelector('#encounter-title');
@@ -1035,12 +1044,529 @@ levels.forEach((level) => {
   });
 });
 
+const murkAtelierBlueprints = {
+  'layer-04': {
+    label: 'ossuary atelier console',
+    introduction:
+      'Bone artisans left their lathes listening for caretakers who remember the calming rites. Pair each workstation with the ritual that keeps it obedient.',
+    tasks: [
+      {
+        nodeId: 'fossil-lathe',
+        prompt: 'The fossil lathe stutters, vertebrae clattering in fear. Which ritual steadies its spin?',
+        options: [
+          {
+            id: 'overclock',
+            label: 'overclock the spin',
+            description: 'Force the vertebrae to comply with extra torque.',
+            feedback: 'Bone dust screams when pushed this hard. The artisan refuses your touch.',
+          },
+          {
+            id: 'hum',
+            label: 'hum the caretaker cadence',
+            description: 'Match the skeletal hand and breathe with its rhythm.',
+            correct: true,
+            successStatus: 'The lathe releases a string of bone-light beads that glow when you breathe.',
+          },
+          {
+            id: 'silence',
+            label: 'halt the lathe entirely',
+            description: 'Stop every wheel until the panic fades.',
+            feedback: 'Stillness only worsens the tremor; fissures crawl along the beads.',
+          },
+        ],
+      },
+      {
+        nodeId: 'tendon-orbit',
+        prompt: 'Bands of tendon tighten overhead, demanding honesty. How do you earn their trust?',
+        options: [
+          {
+            id: 'brace',
+            label: 'lock the bands with clamps',
+            description: 'Force the tendons still with iron braces.',
+            feedback: 'Metal bruises the tendons; they snap at your interference.',
+          },
+          {
+            id: 'truth',
+            label: 'steady your pulse and answer truthfully',
+            description: 'Let the orbit read an honest heartbeat before you move.',
+            correct: true,
+            successStatus: 'The orbit loosens, clearing a path as long as your heart keeps the truth.',
+          },
+          {
+            id: 'slice',
+            label: 'cut the cords free',
+            description: 'Sever the tendons so they cannot judge you.',
+            feedback: 'A shriek rattles the chamber; severed tendons knot themselves in accusation.',
+          },
+        ],
+      },
+      {
+        nodeId: 'calcine-vault',
+        prompt: 'Frost leaks from the calcine vault. How do you wake the kiln without shattering the drawers?',
+        options: [
+          {
+            id: 'ignite-all',
+            label: 'ignite every rune at once',
+            description: 'Flood the kiln with heat and hope it holds.',
+            feedback: 'The rush cracks the sigils. The kiln sulks and refuses to open.',
+          },
+          {
+            id: 'sequence',
+            label: 'trace each rune in kiln order',
+            description: 'Coax the runes awake one at a time, humming their numbers.',
+            correct: true,
+            successStatus: 'The vault exhales frost as the runes awaken in sequence.',
+            shortageStatus: 'Kiln runes glow in expectation. Complete the shortage directives to contain the surge.',
+          },
+          {
+            id: 'vent',
+            label: 'crack the vault to bleed the pressure',
+            description: 'Pry the drawers open and hope the fog escapes harmlessly.',
+            feedback: 'Calcium fog billows out and erases the sigils you need.',
+          },
+        ],
+        shortage: true,
+      },
+    ],
+    observations: ['wax-station', 'humerus-pit'],
+  },
+  'layer-05': {
+    label: 'lantern archive console',
+    introduction:
+      'Lantern clerks expect you to speak in color and cadence. Match each archive station with the response that keeps the whispers loyal.',
+    tasks: [
+      {
+        nodeId: 'glow-index',
+        prompt: 'The glow index drawers shuffle themselves. How do you convince them to open?',
+        options: [
+          {
+            id: 'serial',
+            label: 'sort by serial numbers',
+            description: 'Recite the stamped numbers carved into each handle.',
+            feedback: 'The drawers chuckle—numbers mean nothing to trapped light.',
+          },
+          {
+            id: 'afterimage',
+            label: 'alphabetize the afterimages',
+            description: 'Arrange the drawers by the hue left on your eyelids.',
+            correct: true,
+            successStatus: 'The clerk bows, pinning a glow tag to your wrist as a pass.',
+          },
+          {
+            id: 'silence',
+            label: 'close everything and wait',
+            description: 'Seal the cabinets until they calm down.',
+            feedback: 'Waiting only darkens the catalog. The drawers refuse to budge.',
+          },
+        ],
+      },
+      {
+        nodeId: 'moth-scriptorium',
+        prompt: 'The moths rewrite the walls with their wings. How do you earn the warning etched into their flight?',
+        options: [
+          {
+            id: 'swat',
+            label: 'shoo them into position',
+            description: 'Guide them with your hands until the glyphs settle.',
+            feedback: 'The swarm scatters from such crude handling and reforms elsewhere.',
+          },
+          {
+            id: 'blink',
+            label: 'blink the light-syllables they expect',
+            description: 'Answer their cadence with the flashlight tempo they mirror.',
+            correct: true,
+            successStatus: 'The manuscript flutters open, revealing the warning you spelled with light.',
+          },
+          {
+            id: 'dim',
+            label: 'dim every lantern',
+            description: 'Snuff the nearby lights so the moths stop shimmering.',
+            feedback: 'Darkness confuses the swarm; they forget the message entirely.',
+          },
+        ],
+      },
+      {
+        nodeId: 'lantern-nexus',
+        prompt: 'The lantern nexus spins hungrily. What pattern restitches its braid?',
+        options: [
+          {
+            id: 'random',
+            label: 'ignite lanterns at random',
+            description: 'Flood the nexus with scattered beams.',
+            feedback: 'The hunger deepens when you feed it chaos.',
+          },
+          {
+            id: 'braid',
+            label: 'weave an ascending braid of brightness',
+            description: 'Step the light through each lantern from faintest to brightest.',
+            correct: true,
+            successStatus: 'The nexus steadies, its hunger focusing into a single patient glow.',
+            shortageStatus: 'The braid tightens. Redirect power through the shortage grid to lock it in.',
+          },
+          {
+            id: 'snuff',
+            label: 'snuff all lanterns and restart',
+            description: 'Let the nexus sleep and hope it resets.',
+            feedback: 'Darkness invites the hitcher to nest inside the lanterns.',
+          },
+        ],
+        shortage: true,
+      },
+    ],
+    observations: ['quiet-reading', 'dark-shelf'],
+  },
+  'layer-06': {
+    label: 'echo kiln console',
+    introduction:
+      'The descent listens for caretakers who respect ember order. Shape each furnace ritual before the kilns consent to open.',
+    tasks: [
+      {
+        nodeId: 'ember-choir',
+        prompt: 'The ember choir hums fragments of its final song. How do you rekindle the verses?',
+        options: [
+          {
+            id: 'scatter',
+            label: 'scatter the coals',
+            description: 'Spread the embers so no voice dominates.',
+            feedback: 'Scattered coals forget the melody entirely.',
+          },
+          {
+            id: 'verses',
+            label: 'arrange verses in their sworn order',
+            description: 'Place each ember where the choir last remembered singing it.',
+            correct: true,
+            successStatus: 'They flare once, grateful, then settle into a guiding arrow of embers.',
+          },
+          {
+            id: 'douse',
+            label: 'douse them to stop the noise',
+            description: 'Silence the choir before it attracts attention.',
+            feedback: 'Cold ash cannot guide you. The stair ahead dims.',
+          },
+        ],
+      },
+      {
+        nodeId: 'wire-loom',
+        prompt: 'The wire loom offers three knots. Which braid keeps the sentinel calm?',
+        options: [
+          {
+            id: 'tighten',
+            label: 'tighten every knot at once',
+            description: 'Pull all three strands taut until they squeal.',
+            feedback: 'The sentinel bristles; too much tension frays the promise.',
+          },
+          {
+            id: 'braid',
+            label: 'mirror Lira’s caretaker tempo',
+            description: 'Braid the knots in the order Lira recorded for riots.',
+            correct: true,
+            successStatus: 'The sentinel relaxes, letting the braid hang like a ward over the stair.',
+          },
+          {
+            id: 'melt',
+            label: 'melt the knots loose',
+            description: 'Fuse the copper so it cannot tighten again.',
+            feedback: 'Molten copper spits sparks and resets the loom.',
+          },
+        ],
+      },
+      {
+        nodeId: 'pressure-retort',
+        prompt: 'Pressure gauges spin like frantic eyes. How do you keep the retort from rupturing?',
+        options: [
+          {
+            id: 'vent-all',
+            label: 'bleed every line wide open',
+            description: 'Release all valves until the pressure drops.',
+            feedback: 'The sudden drop cracks the chamber and forces a restart.',
+          },
+          {
+            id: 'pattern',
+            label: 'follow Soma’s measured bleed pattern',
+            description: 'Ease each valve in sequence, listening for the calming hiss.',
+            correct: true,
+            successStatus: 'The gauges settle into a patient rhythm, waiting for your direct intervention.',
+            shortageStatus: 'The retort expects hands-on rerouting. Engage the shortage console before pressure climbs again.',
+          },
+          {
+            id: 'brace',
+            label: 'lock the valves shut',
+            description: 'Clamp everything closed and trust the straps.',
+            feedback: 'The build-up groans louder—without a release it will rupture.',
+          },
+        ],
+        shortage: true,
+      },
+    ],
+    observations: ['cooling-ledge', 'slag-pool'],
+  },
+};
+
+const umbraGauntletProtocols = {
+  'layer-07': {
+    label: 'observatory response deck',
+    introduction:
+      'The nocturne observatory reacts to careful choreography. Answer each prompt with the light tactic that keeps the hitcher guessing.',
+    phases: [
+      {
+        nodeId: 'blackglass-lens',
+        prompt: 'The inkbound astronomer whispers coordinates along your spine. Where do you aim the lens?',
+        options: [
+          {
+            id: 'zenith',
+            label: 'flood the highest beacon',
+            description: 'Drown the dome in raw light so nothing hides.',
+            feedback: 'Every watcher pivots toward you; brute light betrays your position.',
+          },
+          {
+            id: 'heartbeat',
+            label: 'match the heartbeat alignment',
+            description: 'Turn the lens until it thumps in sync with your pulse.',
+            correct: true,
+            successStatus: 'Stars bloom across the ceiling, mapping a safe alignment for your light.',
+          },
+          {
+            id: 'void',
+            label: 'let the lens stare into the void',
+            description: 'Abandon the constellations entirely.',
+            feedback: 'The hitcher surges forward when you surrender the sky.',
+          },
+        ],
+      },
+      {
+        nodeId: 'velvet-daemon',
+        prompt: 'Curtains knot into a revenant demanding choreography. Which routine do you perform?',
+        options: [
+          {
+            id: 'slow-pan',
+            label: 'one slow sweeping arc',
+            description: 'Keep the beam gliding without flourish.',
+            feedback: 'The revenant yawns—too predictable. The hitcher slips closer.',
+          },
+          {
+            id: 'pattern',
+            label: 'three quick pulses, one sweep, then a hold',
+            description: 'Repeat the stage cue encoded for unseen movement.',
+            correct: true,
+            successStatus: 'The shade bows and parts the curtains, letting you slip through.',
+          },
+          {
+            id: 'dark',
+            label: 'kill the light and wait',
+            description: 'Let darkness hide you completely.',
+            feedback: 'Silence invites the hitcher to take center stage.',
+          },
+        ],
+      },
+      {
+        nodeId: 'umbra-switchback',
+        prompt: 'The stair rails glow with carved sigils. How do you descend without surrendering light?',
+        options: [
+          {
+            id: 'dash',
+            label: 'sprint through before they react',
+            description: 'Trust speed to outrun the darkness.',
+            feedback: 'The umbra grips your wrist before the third landing.',
+          },
+          {
+            id: 'trace',
+            label: 'trace each sigil with your beam in order',
+            description: 'Let the flashlight follow Soma’s counter-spell.',
+            correct: true,
+            successStatus: 'The sigils pulse, eager for a full power reroute.',
+            shortageStatus: 'The switchback opens, but only if you stabilize the shortage grid now.',
+          },
+          {
+            id: 'extinguish',
+            label: 'extinguish the beam and feel your way down',
+            description: 'Move blind so the hitcher cannot see you.',
+            feedback: 'Blindness is exactly what the hitcher wants; it wraps around you.',
+          },
+        ],
+        shortage: true,
+      },
+    ],
+    observations: ['shadow-lectern', 'false-dome'],
+  },
+  'layer-08': {
+    label: 'warren negotiation deck',
+    introduction:
+      'Every corridor offers bargains. Choose the defiant answers that keep your autonomy while guiding the light forward.',
+    phases: [
+      {
+        nodeId: 'pledge-station',
+        prompt: 'The oath broker slides contracts toward you. How do you counter the hitcher’s bargain?',
+        options: [
+          {
+            id: 'sign',
+            label: 'sign the offered contract',
+            description: 'Trade hesitation for the broker’s protection.',
+            feedback: 'Ink coils around your wrist—the hitcher applauds the surrender.',
+          },
+          {
+            id: 'counter',
+            label: 'burn a counter-oath in light',
+            description: 'Trace your refusal across the parchment with the beam.',
+            correct: true,
+            successStatus: 'The contract smolders into a protective sigil hovering above your shoulder.',
+          },
+          {
+            id: 'ignore',
+            label: 'walk away without answering',
+            description: 'Silence the negotiation entirely.',
+            feedback: 'Silence is taken as consent. Chains rattle for your attention.',
+          },
+        ],
+      },
+      {
+        nodeId: 'echo-cell',
+        prompt: 'A rescued murmur begs to travel with you. Which cadence frees it without harming the others?',
+        options: [
+          {
+            id: 'shout',
+            label: 'shout a victorious march',
+            description: 'Lead with triumphant noise.',
+            feedback: 'The march shatters the quieter voices still trapped.',
+          },
+          {
+            id: 'carry',
+            label: 'carry the soft liberation hymn',
+            description: 'Sing the mercy cadence Lira encoded in the cells.',
+            correct: true,
+            successStatus: 'The cell door swings open, gifting a spectrum locked in your palm.',
+          },
+          {
+            id: 'silence',
+            label: 'leave the murmur behind',
+            description: 'Promise to return after you escape.',
+            feedback: 'The murmur fades in despair, the corridor dimmer for it.',
+          },
+        ],
+      },
+      {
+        nodeId: 'barred-generator',
+        prompt: 'Sparks lash from the barred generator. What pattern keeps the grid from resetting?',
+        options: [
+          {
+            id: 'hammer',
+            label: 'pound the bars until they bend',
+            description: 'Force a path with brute strength.',
+            feedback: 'The generator retaliates, jolting you back to the entrance.',
+          },
+          {
+            id: 'rhythm',
+            label: 'strike Soma’s breaker rhythm',
+            description: 'Match the hidden pattern woven into the shackles.',
+            correct: true,
+            successStatus: 'The surge calms, waiting for you to route the rest of the power.',
+            shortageStatus: 'Stabilize the shortage console to free the corridor completely.',
+          },
+          {
+            id: 'wait',
+            label: 'wait for the sparks to tire',
+            description: 'Give the grid time to exhaust itself.',
+            feedback: 'The grid loops endlessly, delighted by your hesitation.',
+          },
+        ],
+        shortage: true,
+      },
+    ],
+    observations: ['bargain-lantern', 'empty-shackles'],
+  },
+  'layer-09': {
+    label: 'amphitheatre vow deck',
+    introduction:
+      'The silent amphitheatre judges resolve. Prove every vow in sequence while keeping the lumen engine primed.',
+    phases: [
+      {
+        nodeId: 'audience-altar',
+        prompt: 'Mirrors around the altar replay your promises. How do you align them?',
+        options: [
+          {
+            id: 'shatter',
+            label: 'shatter the mirrors',
+            description: 'Remove the witnesses entirely.',
+            feedback: 'Fragments of glass whisper betrayal; the jury leans forward hungrily.',
+          },
+          {
+            id: 'align',
+            label: 'realign each mirror to its vow',
+            description: 'Match the reflections to the promises you kept.',
+            correct: true,
+            successStatus: 'The jury nods, returning your promises as bolstered light.',
+          },
+          {
+            id: 'dim',
+            label: 'dim the beam until no vow shows',
+            description: 'Hide the promises in shadow.',
+            feedback: 'Darkness convinces the silhouettes you have nothing left to prove.',
+          },
+        ],
+      },
+      {
+        nodeId: 'choral-stage',
+        prompt: 'Caretaker echoes wait for the pledge. Which sequence keeps the amphitheatre listening?',
+        options: [
+          {
+            id: 'reverse',
+            label: 'recite the vow backward',
+            description: 'Show you can improvise.',
+            feedback: 'The resonance collapses; improvisation breaks the covenant.',
+          },
+          {
+            id: 'order',
+            label: 'speak the vow in sworn order',
+            description: 'Layer light, sound, and memory exactly as recorded.',
+            correct: true,
+            successStatus: 'The resonance vibrates through your ribs, syncing with your flashlight hum.',
+          },
+          {
+            id: 'silence',
+            label: 'let the echoes speak for you',
+            description: 'Stand aside and listen.',
+            feedback: 'Without your voice the echoes fade, expecting abandonment.',
+          },
+        ],
+      },
+      {
+        nodeId: 'lumen-engine',
+        prompt: 'The lumen engine waits for the last command. How do you wake it?',
+        options: [
+          {
+            id: 'surge',
+            label: 'dump every fragment into the core at once',
+            description: 'Overwhelm the lattice with raw light.',
+            feedback: 'The engine rejects the surge and dims the amphitheatre.',
+          },
+          {
+            id: 'sequence',
+            label: 'thread each fragment into the lattice',
+            description: 'Place the fragments in ascending resonance as Soma intended.',
+            correct: true,
+            successStatus: 'The engine awakens, hungry for a stable power flow.',
+            shortageStatus: 'Seal the shortage sequence to keep the lumen engine alive.',
+          },
+          {
+            id: 'wait',
+            label: 'wait for the audience to act',
+            description: 'Let the silhouettes decide when to ignite.',
+            feedback: 'Their patience is infinite; the engine never sparks.',
+          },
+        ],
+        shortage: true,
+      },
+    ],
+    observations: ['resting-row', 'stage-trapdoor'],
+  },
+};
+
 let currentLevelIndex = 0;
 let gameActive = false;
 let pointerEnabled = true;
 let pointerAnimationActive = false;
 let pointerSuspended = false;
 let activeSegmentId = null;
+let activeExplorationView = 'legacy';
 
 const FLASHLIGHT_COOLDOWN_MS = 5200;
 let flashlightReady = true;
@@ -1052,6 +1578,12 @@ let stalkerScheduleTimeout = null;
 let stalkerActive = false;
 let stalkerFailTimeout = null;
 let stalkerSuspended = false;
+const STALKER_HOLD_DURATION_MS = 1800;
+let stalkerHoldStart = null;
+let stalkerHoldRaf = null;
+let stalkerPointerLocked = false;
+let stalkerPointerInside = false;
+let stalkerEntityRect = null;
 
 let finalPuzzleState = null;
 
@@ -1085,6 +1617,8 @@ let levelState = {
   keysFound: 0,
   keysRequired: 0,
 };
+const shortageHelpState = new Map();
+let activeShortageStageId = null;
 
 let introActive = false;
 let introComplete = false;
@@ -1170,7 +1704,7 @@ function cancelPointerAutopilot() {
 
 function schedulePointerAutopilot() {
   if (pointerAutopilotState.active || pointerAutopilotState.timeoutId) return;
-  if (!gameActive || !pointerEnabled || pointerSuspended) return;
+  if (!gameActive || !pointerEnabled || pointerSuspended || stalkerActive) return;
   const delay = 6000 + Math.random() * 10000;
   pointerAutopilotState.timeoutId = setTimeout(() => {
     pointerAutopilotState.timeoutId = null;
@@ -1179,7 +1713,7 @@ function schedulePointerAutopilot() {
 }
 
 function startPointerAutopilot() {
-  if (!gameActive || !pointerEnabled || pointerSuspended || pointerAutopilotState.active) {
+  if (!gameActive || !pointerEnabled || pointerSuspended || stalkerActive || pointerAutopilotState.active) {
     schedulePointerAutopilot();
     return;
   }
@@ -1313,6 +1847,7 @@ document.addEventListener('pointermove', (event) => {
     pointerPosition.y = event.clientY;
     pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
   }
+  handleStalkerPointer(event);
 });
 
 function setupFromStorage() {
@@ -1322,6 +1857,48 @@ function setupFromStorage() {
   updateStaticPreference(storedStatic !== '0');
   pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
   updateFlashlightIndicator();
+}
+
+function getExplorationElement(view = activeExplorationView) {
+  switch (view) {
+    case 'atelier':
+      return atelierInterface;
+    case 'gauntlet':
+      return gauntletInterface;
+    default:
+      return mapArea;
+  }
+}
+
+function setExplorationView(view, options = {}) {
+  activeExplorationView = view;
+  const { label } = options;
+  const legacyActive = view === 'legacy';
+  const atelierActive = view === 'atelier';
+  const gauntletActive = view === 'gauntlet';
+  legacyStage?.classList.toggle('hidden', !legacyActive);
+  legacyStage?.setAttribute('aria-hidden', legacyActive ? 'false' : 'true');
+  atelierStage?.classList.toggle('hidden', !atelierActive);
+  atelierStage?.setAttribute('aria-hidden', atelierActive ? 'false' : 'true');
+  gauntletStage?.classList.toggle('hidden', !gauntletActive);
+  gauntletStage?.setAttribute('aria-hidden', gauntletActive ? 'false' : 'true');
+  const stageLabel =
+    typeof label === 'string'
+      ? label
+      : legacyActive
+      ? 'trace map'
+      : atelierActive
+      ? 'ossuary atelier console'
+      : 'umbra response deck';
+  if (explorationLabel) {
+    explorationLabel.textContent = stageLabel;
+  }
+}
+
+function markExplorationPowerDown(active) {
+  const element = getExplorationElement();
+  if (!element) return;
+  element.classList.toggle('power-down', Boolean(active));
 }
 
 function updateFlashlightIndicator() {
@@ -1358,12 +1935,16 @@ function resetFlashlightState() {
   updateFlashlightIndicator();
 }
 
-function useFlashlight({ silent = false } = {}) {
+function useFlashlight({ silent = false, force = false } = {}) {
   if (!gameActive) return;
   if (!flashlightReady) {
     if (!silent) {
       setStatus('flashlight capacitor still cooling.', { duration: 2200 });
     }
+    return;
+  }
+  if (stalkerActive && !force) {
+    setStatus('The hitcher waits for a steady beam. Hold it in place.', { duration: 2600 });
     return;
   }
   beginFlashlightCooldown();
@@ -1410,6 +1991,124 @@ function scheduleStalkerEvent(immediate = false) {
   }, base + Math.random() * variance);
 }
 
+function resetStalkerHold() {
+  if (stalkerHoldRaf) {
+    cancelAnimationFrame(stalkerHoldRaf);
+    stalkerHoldRaf = null;
+  }
+  stalkerHoldStart = null;
+  stalkerPointerLocked = false;
+  stalkerPointerInside = false;
+  stalkerEntityRect = null;
+  updateStalkerProgress(0);
+  if (stalkerEntityMarker) {
+    stalkerEntityMarker.style.transform = 'translate(0px, 0px)';
+  }
+}
+
+function updateStalkerProgress(value) {
+  const clamped = Math.min(1, Math.max(0, value));
+  if (stalkerProgressBar) {
+    stalkerProgressBar.style.width = `${clamped * 100}%`;
+  }
+  if (stalkerProgress) {
+    stalkerProgress.setAttribute('aria-valuenow', String(Math.round(clamped * 100)));
+  }
+}
+
+function positionStalkerEntity() {
+  if (!stalkerField || !stalkerEntityMarker) return;
+  const fieldRect = stalkerField.getBoundingClientRect();
+  if (fieldRect.width <= 0 || fieldRect.height <= 0) {
+    stalkerEntityRect = null;
+    return;
+  }
+  const size = Math.max(96, Math.min(fieldRect.width, fieldRect.height) * 0.35);
+  const maxX = Math.max(0, fieldRect.width - size);
+  const maxY = Math.max(0, fieldRect.height - size);
+  const offsetX = Math.random() * maxX;
+  const offsetY = Math.random() * maxY;
+  stalkerEntityMarker.style.width = `${size}px`;
+  stalkerEntityMarker.style.height = `${size}px`;
+  stalkerEntityMarker.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+  stalkerEntityRect = {
+    left: fieldRect.left + offsetX,
+    top: fieldRect.top + offsetY,
+    right: fieldRect.left + offsetX + size,
+    bottom: fieldRect.top + offsetY + size,
+  };
+}
+
+function tickStalkerHold(timestamp) {
+  if (!stalkerPointerLocked || !stalkerPointerInside || !stalkerHoldStart) {
+    stalkerHoldRaf = null;
+    return;
+  }
+  const elapsed = timestamp - stalkerHoldStart;
+  const progress = Math.min(1, elapsed / STALKER_HOLD_DURATION_MS);
+  updateStalkerProgress(progress);
+  if (progress >= 1) {
+    stalkerHoldRaf = null;
+    completeStalkerHold();
+  } else {
+    stalkerHoldRaf = requestAnimationFrame(tickStalkerHold);
+  }
+}
+
+function handleStalkerPointer(event) {
+  if (!stalkerActive || !stalkerEntityRect) return;
+  const { clientX, clientY } = event;
+  const inside =
+    clientX >= stalkerEntityRect.left &&
+    clientX <= stalkerEntityRect.right &&
+    clientY >= stalkerEntityRect.top &&
+    clientY <= stalkerEntityRect.bottom;
+
+  if (inside && !stalkerPointerInside) {
+    stalkerPointerInside = true;
+    stalkerPointerLocked = true;
+    stalkerHoldStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (stalkerWarning) {
+      stalkerWarning.textContent = 'Beam engaged. Hold your aim.';
+    }
+    if (!stalkerHoldRaf) {
+      stalkerHoldRaf = requestAnimationFrame(tickStalkerHold);
+    }
+  } else if (!inside && stalkerPointerInside) {
+    stalkerPointerInside = false;
+    stalkerPointerLocked = false;
+    stalkerHoldStart = null;
+    if (stalkerWarning && stalkerActive) {
+      stalkerWarning.textContent = 'The hitcher slips aside. Re-center the beam.';
+    }
+    if (stalkerHoldRaf) {
+      cancelAnimationFrame(stalkerHoldRaf);
+      stalkerHoldRaf = null;
+    }
+    updateStalkerProgress(0);
+  }
+}
+
+function completeStalkerHold() {
+  stalkerPointerInside = false;
+  stalkerPointerLocked = false;
+  stalkerHoldStart = null;
+  if (!flashlightReady) {
+    updateStalkerProgress(0);
+    if (stalkerWarning) {
+      stalkerWarning.textContent = 'The capacitor is dry. Wait for the recharge.';
+    }
+    setStatus('Flashlight capacitor still cooling. The hitcher leans closer.', { duration: 2600 });
+    return;
+  }
+  updateStalkerProgress(1);
+  if (stalkerWarning) {
+    stalkerWarning.textContent = 'The hitcher recoils from the beam.';
+  }
+  useFlashlight({ silent: true, force: true });
+  setStatus('The hitcher recoils from the focused beam.', { duration: 3200 });
+}
+
 function updateStalkerSuspension() {
   const shouldSuspend =
     !gameActive ||
@@ -1450,13 +2149,20 @@ function triggerStalkerEvent() {
   }
   stalkerActive = true;
   stalkerOverlay?.classList.remove('hidden');
-  stalkerWarning.textContent = 'Hold steady. Flash before the hitcher settles over you.';
-  pointerSuspended = true;
+  resetStalkerHold();
+  updateStalkerProgress(0);
+  if (stalkerWarning) {
+    stalkerWarning.textContent = 'Hold steady. Bathe the hitcher in light until it withdraws.';
+  }
+  cancelPointerAutopilot();
   refreshPointerVisibility();
   suspendWatchers(true);
-  setStatus('an umbral hitcher leans close. flash the light now.', {
+  setStatus('an umbral hitcher leans close. keep the beam centered.', {
     duration: 3600,
     lock: true,
+  });
+  requestAnimationFrame(() => {
+    positionStalkerEntity();
   });
   stalkerFailTimeout = setTimeout(() => {
     failStalker();
@@ -1468,9 +2174,9 @@ function resolveStalker(success, options = {}) {
   cancelStalkerEvent();
   stalkerActive = false;
   stalkerOverlay?.classList.add('hidden');
-  pointerSuspended = false;
   refreshPointerVisibility();
   suspendWatchers(false);
+  resetStalkerHold();
   if (success && !silent) {
     setStatus('The hitcher recoils from the beam and retreats.', { duration: 3200 });
   }
@@ -1483,9 +2189,12 @@ function failStalker() {
   cancelStalkerEvent();
   stalkerActive = false;
   stalkerOverlay?.classList.add('hidden');
-  pointerSuspended = false;
   refreshPointerVisibility();
   suspendWatchers(true);
+  resetStalkerHold();
+  if (stalkerWarning) {
+    stalkerWarning.textContent = 'The hitcher scatters before regrouping. Stay ready.';
+  }
   setStatus('The hitcher drags you backward. Segment restart enforced.', {
     duration: 3600,
     lock: true,
@@ -1790,6 +2499,7 @@ function startGame() {
   shortageCompletionCount = 0;
   activeShortageCycle = 0;
   collectedFragments = new Map();
+  shortageHelpState.clear();
   sessionLabel.textContent = randomSessionLabel();
   setScreen('level');
   finalSection.classList.add('hidden');
@@ -1826,7 +2536,7 @@ function loadCurrentLevel() {
   levelLore.textContent = level.synopsis;
   setWatcherLabel(defaultWatcherLabel);
   resetStatus();
-  mapArea?.classList.remove('power-down');
+  markExplorationPowerDown(false);
 
   levelState = {
     keysFound: 0,
@@ -1835,7 +2545,36 @@ function loadCurrentLevel() {
   updateProgress();
 
   buildFragmentList();
-  renderMap(level);
+  level.nodes.forEach((node) => {
+    node.visited = false;
+    if (node.element) {
+      node.element.classList.remove('visited', 'hostile');
+    }
+    node.element = null;
+  });
+
+  if (level.segment === 'murk-atelier') {
+    const blueprint = murkAtelierBlueprints[level.id];
+    if (blueprint) {
+      setExplorationView('atelier', { label: blueprint.label });
+      renderAtelierInterface(level, blueprint);
+    } else {
+      setExplorationView('legacy');
+      renderMap(level);
+    }
+  } else if (level.segment === 'umbra-gauntlet') {
+    const protocol = umbraGauntletProtocols[level.id];
+    if (protocol) {
+      setExplorationView('gauntlet', { label: protocol.label });
+      renderGauntletInterface(level, protocol);
+    } else {
+      setExplorationView('legacy');
+      renderMap(level);
+    }
+  } else {
+    setExplorationView('legacy');
+    renderMap(level);
+  }
   scheduleWatcher();
 }
 
@@ -1896,7 +2635,372 @@ function renderMap(level) {
   requestAnimationFrame(() => realignMapLabels());
 }
 
+function findLevelNode(level, nodeId) {
+  return level?.nodes?.find((node) => node.id === nodeId) ?? null;
+}
+
+function renderAtelierInterface(level, blueprint) {
+  if (!atelierInterface || !level) return;
+  if (!blueprint) {
+    renderMap(level);
+    return;
+  }
+  atelierInterface.innerHTML = '';
+
+  if (blueprint.introduction) {
+    const intro = document.createElement('p');
+    intro.className = 'atelier-intro';
+    intro.textContent = blueprint.introduction;
+    atelierInterface.append(intro);
+  }
+
+  const taskGrid = document.createElement('div');
+  taskGrid.className = 'atelier-grid';
+
+  blueprint.tasks?.forEach((task) => {
+    const node = findLevelNode(level, task.nodeId);
+    if (!node) return;
+    const card = document.createElement('article');
+    card.className = 'atelier-card';
+    card.dataset.nodeId = node.id;
+    node.element = card;
+
+    const title = document.createElement('h3');
+    title.textContent = node.name;
+    card.append(title);
+
+    if (node.description) {
+      const description = document.createElement('p');
+      description.className = 'atelier-description';
+      description.textContent = node.description;
+      card.append(description);
+    }
+
+    if (task.prompt) {
+      const prompt = document.createElement('p');
+      prompt.className = 'atelier-prompt';
+      prompt.textContent = task.prompt;
+      card.append(prompt);
+    }
+
+    const options = document.createElement('div');
+    options.className = 'atelier-options';
+    card.append(options);
+
+    const status = document.createElement('p');
+    status.className = 'atelier-status';
+    card.append(status);
+
+    let fragmentNote = null;
+    if (node.fragment) {
+      fragmentNote = document.createElement('p');
+      fragmentNote.className = 'atelier-fragment hidden';
+      fragmentNote.textContent = node.fragment.text;
+      card.append(fragmentNote);
+    }
+
+    const handleSuccess = (message, shortageMessage, option) => {
+      card.classList.add('completed');
+      options.querySelectorAll('button').forEach((btn) => {
+        btn.disabled = true;
+        btn.setAttribute('disabled', 'true');
+        btn.classList.add('locked');
+      });
+      if (option) {
+        option.classList.add('correct');
+      }
+      if (node.fragment && fragmentNote) {
+        fragmentNote.classList.remove('hidden');
+      }
+      if (node.encounter.effect === 'shortage') {
+        const shortageStatus = shortageMessage || task.shortageStatus || 'The machinery roars awake, demanding direct rerouting.';
+        status.textContent = shortageStatus;
+        if (message) {
+          setStatus(message, { duration: 2800 });
+        }
+        triggerShortage(node);
+      } else {
+        const resolvedMessage = message || task.successStatus || node.encounter.afterStatus;
+        if (resolvedMessage) {
+          status.textContent = resolvedMessage;
+          setStatus(resolvedMessage, { duration: 3200 });
+        } else {
+          status.textContent = 'The workstation settles.';
+          resetStatus();
+        }
+        if (!node.visited) {
+          markNodeVisited(node);
+        }
+      }
+    };
+
+    task.options?.forEach((optionConfig) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'choice-button atelier-option';
+      button.dataset.optionId = optionConfig.id ?? '';
+      const label = document.createElement('span');
+      label.className = 'option-label';
+      label.textContent = optionConfig.label ?? 'unknown option';
+      button.append(label);
+      if (optionConfig.description) {
+        const detail = document.createElement('span');
+        detail.className = 'option-detail';
+        detail.textContent = optionConfig.description;
+        button.append(detail);
+      }
+      options.append(button);
+
+      button.addEventListener('click', () => {
+        if (card.classList.contains('completed')) return;
+        if (optionConfig.correct) {
+          const successText = optionConfig.successStatus || task.successStatus || node.encounter.afterStatus;
+          handleSuccess(successText, optionConfig.shortageStatus, button);
+        } else {
+          button.classList.add('incorrect');
+          setTimeout(() => button.classList.remove('incorrect'), 520);
+          const feedback = optionConfig.feedback || 'The workstation recoils from that approach.';
+          status.textContent = feedback;
+          setStatus(feedback, { duration: 2600 });
+        }
+      });
+    });
+
+    taskGrid.append(card);
+  });
+
+  if (taskGrid.childElementCount > 0) {
+    atelierInterface.append(taskGrid);
+  }
+
+  if (blueprint.observations?.length) {
+    const observations = document.createElement('div');
+    observations.className = 'atelier-observations';
+    const header = document.createElement('h3');
+    header.textContent = 'ambient presences';
+    observations.append(header);
+
+    blueprint.observations.forEach((nodeId) => {
+      const node = findLevelNode(level, nodeId);
+      if (!node) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'atelier-observation';
+      button.dataset.nodeId = node.id;
+      const title = document.createElement('span');
+      title.className = 'observation-title';
+      title.textContent = node.name;
+      button.append(title);
+      if (node.description) {
+        const detail = document.createElement('span');
+        detail.className = 'observation-detail';
+        detail.textContent = node.description;
+        button.append(detail);
+      }
+      button.addEventListener('click', () => {
+        if (pointerSuspended || powerOffline) return;
+        currentEncounterNode = node;
+        openEncounter(node);
+      });
+      node.element = node.element || button;
+      observations.append(button);
+    });
+
+    if (observations.childElementCount > 1) {
+      atelierInterface.append(observations);
+    }
+  }
+}
+
+function renderGauntletInterface(level, protocol) {
+  if (!gauntletInterface || !level) return;
+  if (!protocol) {
+    renderMap(level);
+    return;
+  }
+  gauntletInterface.innerHTML = '';
+
+  if (protocol.introduction) {
+    const intro = document.createElement('p');
+    intro.className = 'gauntlet-intro';
+    intro.textContent = protocol.introduction;
+    gauntletInterface.append(intro);
+  }
+
+  const phaseList = document.createElement('div');
+  phaseList.className = 'gauntlet-phases';
+
+  protocol.phases?.forEach((phase, index) => {
+    const node = findLevelNode(level, phase.nodeId);
+    if (!node) return;
+    const card = document.createElement('article');
+    card.className = 'gauntlet-phase';
+    card.dataset.nodeId = node.id;
+    if (index > 0) {
+      card.classList.add('locked');
+    }
+    node.element = card;
+
+    const title = document.createElement('h3');
+    title.textContent = node.name;
+    card.append(title);
+
+    if (node.description) {
+      const description = document.createElement('p');
+      description.className = 'gauntlet-description';
+      description.textContent = node.description;
+      card.append(description);
+    }
+
+    if (phase.prompt) {
+      const prompt = document.createElement('p');
+      prompt.className = 'gauntlet-prompt';
+      prompt.textContent = phase.prompt;
+      card.append(prompt);
+    }
+
+    const options = document.createElement('div');
+    options.className = 'gauntlet-options';
+    card.append(options);
+
+    const status = document.createElement('p');
+    status.className = 'gauntlet-status';
+    card.append(status);
+
+    let fragmentNote = null;
+    if (node.fragment) {
+      fragmentNote = document.createElement('p');
+      fragmentNote.className = 'gauntlet-fragment hidden';
+      fragmentNote.textContent = node.fragment.text;
+      card.append(fragmentNote);
+    }
+
+    const lockButtons = (completedButton) => {
+      options.querySelectorAll('button').forEach((btn) => {
+        btn.disabled = true;
+        btn.setAttribute('disabled', 'true');
+        btn.classList.add('locked');
+        if (btn === completedButton) {
+          btn.classList.add('correct');
+        }
+      });
+      card.classList.add('completed');
+    };
+
+    const unlockNext = () => {
+      const next = phaseList.children[index + 1];
+      if (next) {
+        next.classList.remove('locked');
+        next.querySelectorAll('button').forEach((btn) => {
+          btn.disabled = false;
+          btn.removeAttribute('disabled');
+        });
+      }
+    };
+
+    phase.options?.forEach((optionConfig) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'choice-button gauntlet-option';
+      button.dataset.optionId = optionConfig.id ?? '';
+      if (index > 0) {
+        button.disabled = true;
+        button.setAttribute('disabled', 'true');
+      }
+      const label = document.createElement('span');
+      label.className = 'option-label';
+      label.textContent = optionConfig.label ?? 'unknown option';
+      button.append(label);
+      if (optionConfig.description) {
+        const detail = document.createElement('span');
+        detail.className = 'option-detail';
+        detail.textContent = optionConfig.description;
+        button.append(detail);
+      }
+      options.append(button);
+
+      button.addEventListener('click', () => {
+        if (card.classList.contains('completed') || card.classList.contains('locked')) return;
+        if (optionConfig.correct) {
+          const successText = optionConfig.successStatus || phase.successStatus || node.encounter.afterStatus;
+          lockButtons(button);
+          if (node.fragment && fragmentNote) {
+            fragmentNote.classList.remove('hidden');
+          }
+          if (node.encounter.effect === 'shortage') {
+            const shortageStatus = optionConfig.shortageStatus || phase.shortageStatus || 'The corridor expects an immediate power reroute.';
+            status.textContent = shortageStatus;
+            if (successText) {
+              setStatus(successText, { duration: 3000 });
+            }
+            triggerShortage(node);
+          } else {
+            const resolvedMessage = successText || 'The corridor accepts your tactic.';
+            status.textContent = resolvedMessage;
+            setStatus(resolvedMessage, { duration: 3200 });
+            if (!node.visited) {
+              markNodeVisited(node);
+            }
+          }
+          unlockNext();
+        } else {
+          button.classList.add('incorrect');
+          setTimeout(() => button.classList.remove('incorrect'), 520);
+          const feedback = optionConfig.feedback || 'The hitcher smiles at the misstep. Try another tactic.';
+          status.textContent = feedback;
+          setStatus(feedback, { duration: 2600 });
+        }
+      });
+    });
+
+    phaseList.append(card);
+  });
+
+  if (phaseList.childElementCount > 0) {
+    gauntletInterface.append(phaseList);
+  }
+
+  if (protocol.observations?.length) {
+    const observations = document.createElement('div');
+    observations.className = 'gauntlet-observations';
+    const header = document.createElement('h3');
+    header.textContent = 'peripheral anomalies';
+    observations.append(header);
+
+    protocol.observations.forEach((nodeId) => {
+      const node = findLevelNode(level, nodeId);
+      if (!node) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'gauntlet-observation';
+      button.dataset.nodeId = node.id;
+      const title = document.createElement('span');
+      title.className = 'observation-title';
+      title.textContent = node.name;
+      button.append(title);
+      if (node.description) {
+        const detail = document.createElement('span');
+        detail.className = 'observation-detail';
+        detail.textContent = node.description;
+        button.append(detail);
+      }
+      button.addEventListener('click', () => {
+        if (pointerSuspended || powerOffline) return;
+        currentEncounterNode = node;
+        openEncounter(node);
+      });
+      node.element = node.element || button;
+      observations.append(button);
+    });
+
+    if (observations.childElementCount > 1) {
+      gauntletInterface.append(observations);
+    }
+  }
+}
+
 function realignMapLabels() {
+  if (activeExplorationView !== 'legacy') return;
   if (!mapArea || mapArea.childElementCount === 0) return;
   const areaRect = mapArea.getBoundingClientRect();
   if (areaRect.width === 0 || areaRect.height === 0) return;
@@ -2082,7 +3186,7 @@ function triggerShortage(node) {
   shortageOverlay.classList.remove('hidden');
   pointerSuspended = true;
   refreshPointerVisibility();
-  mapArea?.classList.add('power-down');
+  markExplorationPowerDown(true);
   playShortageAmbient();
   playShortageScore();
   setStatus('the level waits in darkness. restore the pulse.', { duration: 3200 });
@@ -2093,13 +3197,14 @@ function resolveShortage() {
   stopShortageTimer();
   shortageStageCleanup?.();
   shortageStageCleanup = null;
+  activeShortageStageId = null;
   shortageOverlay.classList.add('hidden');
   stopShortageAmbient();
   stopShortageScore();
   powerOffline = false;
   pointerSuspended = false;
   refreshPointerVisibility();
-  mapArea?.classList.remove('power-down');
+  markExplorationPowerDown(false);
   realignMapLabels();
   if (pendingShortageNode && !pendingShortageNode.visited) {
     markNodeVisited(pendingShortageNode);
@@ -2127,12 +3232,13 @@ function abortShortage() {
   stopShortageTimer();
   shortageStageCleanup?.();
   shortageStageCleanup = null;
+  activeShortageStageId = null;
   shortageOverlay.classList.add('hidden');
   stopShortageAmbient();
   stopShortageScore();
   setStatus('You linger in the dark. The archive disapproves.', { duration: 3200 });
   powerOffline = true;
-  mapArea?.classList.add('power-down');
+  markExplorationPowerDown(true);
   pointerSuspended = false;
   refreshPointerVisibility();
   suspendWatchers(true);
@@ -2144,6 +3250,7 @@ function startShortageStage() {
   if (shortageOverlay.classList.contains('hidden')) return;
   if (!shortageChallenges.length) return;
   const stage = shortageChallenges[currentShortageStage];
+  activeShortageStageId = stage?.id ?? null;
   shortagePuzzle.innerHTML = '';
   shortageStageCleanup?.();
   shortageStageCleanup = null;
@@ -2154,19 +3261,25 @@ function startShortageStage() {
     stageIndex: currentShortageStage,
     totalStages: shortageChallenges.length,
     complete: (message) => advanceShortageStage(message),
-    fail: (message) => failShortageStage(message),
+    fail: (message) => failShortageStage(message, { stageId: stage.id }),
     updateStatus: (message) => {
       if (message) {
         shortageStatus.textContent = message;
       }
     },
-    createShell: (title) => createChallengeShell(title, currentShortageStage, shortageChallenges.length),
+    createShell: (title) =>
+      createChallengeShell({
+        title,
+        stageId: stage.id,
+        stageIndex: currentShortageStage,
+        totalStages: shortageChallenges.length,
+      }),
   };
   const result = stage.setup(context) ?? {};
   shortageStageCleanup = result.cleanup ?? null;
   startShortageTimer(
     stage.duration,
-    () => failShortageStage('Timer expired. The hatch resets.'),
+    () => failShortageStage('Timer expired. The hatch resets.', { stageId: stage.id, timedOut: true }),
     result.timerControl
   );
 }
@@ -2175,6 +3288,7 @@ function advanceShortageStage(message) {
   stopShortageTimer();
   shortageStageCleanup?.();
   shortageStageCleanup = null;
+  activeShortageStageId = null;
   if (message) {
     shortageStatus.textContent = message;
   }
@@ -2196,10 +3310,14 @@ function advanceShortageStage(message) {
   }
 }
 
-function failShortageStage(message) {
+function failShortageStage(message, options = {}) {
   stopShortageTimer();
   shortageStageCleanup?.();
   shortageStageCleanup = null;
+  const { stageId = activeShortageStageId, timedOut = false } = options;
+  if (timedOut && stageId) {
+    shortageHelpState.set(stageId, true);
+  }
   if (message) {
     shortageStatus.textContent = message;
   }
@@ -2208,6 +3326,7 @@ function failShortageStage(message) {
     '<span class="highlight">The caretaker wipes the schematics clean.</span> Every relay demands a fresh attempt.';
   shortageChallenges = createShortageChallenges(activeShortageCycle);
   currentShortageStage = 0;
+  activeShortageStageId = null;
   setTimeout(() => {
     if (!shortageOverlay.classList.contains('hidden')) {
       startShortageStage();
@@ -2414,7 +3533,40 @@ function createFifthShortageChallengeSet() {
   ];
 }
 
-function createChallengeShell(title, stageIndex, totalStages) {
+const shortageHelpMessages = {
+  'relay-sequence':
+    'Tap the relays exactly as the caretaker memo states: solo coil, then triad dais, echo glyph, mirror ladder, and finish with the siphon gate.',
+  'diagnostic-audit':
+    'Only the mirror ladder following a stabilized conduit and the echo glyph holding third remain true. Approve those two statements.',
+  'glyph-override':
+    'Type the override phrase using the glowing words in order: “listen trace siphon awake”.',
+  'coolant-rationing':
+    'Engage the spiral drain (9), chorus vent (7), and badge sieve (5). Together they sum to the 21-flow hymn.',
+  'tidal-sequence':
+    'Stabilize the currents as they surface: vent surge first, then spiral rise, and finally the undertow call.',
+  'chorus-translation':
+    'Match the tones to their meanings—climbing water is an alarm, the arranging hands are guidance, and the lullaby hum is comfort.',
+  'spire-calibration':
+    'Sweep each slider until its readout matches the target number exactly; every coil must sit on its assigned frequency.',
+  'vow-alignment':
+    'Record the vows in sworn order: Amon first, Lira second, Soma third, and pointer.exe last.',
+  'echo-weave':
+    'Leave the listen, witness, and anchor runes glowing. Extinguish harvest, sever, and drain.',
+  'bone-rhythm':
+    'The lullaby beats on vertebrae one, three, and four. Keep the second vertebra silent.',
+  'lantern-weave':
+    'Choose the filaments whose frequencies total nineteen: amber (7), violet (9), and ashen (3).',
+  'kiln-chord':
+    'Set the vents to their ledger marks: north 428°, east 356°, and south 312°.',
+  'flashlight-cues':
+    'Perform the anti-hitcher pattern—three quick pulses, one long sweep, then hold the beam.',
+  'hostage-cipher':
+    'Assign refusal to the chain voice, counter-oath to the mirror, and escort to the echo.',
+  'lumen-lock':
+    'Awaken the bulbs from faintest to brightest: gloam spark, dawn pulse, noon flare, then zenith beam.',
+};
+
+function createChallengeShell({ title, stageId, stageIndex, totalStages }) {
   const article = document.createElement('article');
   article.className = 'challenge';
   const header = document.createElement('header');
@@ -2424,8 +3576,45 @@ function createChallengeShell(title, stageIndex, totalStages) {
   stageSpan.textContent = `stage ${stageIndex + 1}/${totalStages}`;
   header.append(titleSpan, stageSpan);
   const timerControl = createTimerControl();
-  article.append(header, timerControl.element);
+  article.append(header);
+
+  const helpAvailable =
+    stageId && shortageHelpState.get(stageId) && Object.prototype.hasOwnProperty.call(shortageHelpMessages, stageId);
+  if (helpAvailable) {
+    const helpButton = document.createElement('button');
+    helpButton.type = 'button';
+    helpButton.className = 'glitch-button help-button';
+    helpButton.textContent = 'help';
+    helpButton.setAttribute('aria-expanded', 'false');
+    helpButton.addEventListener('click', () => {
+      showShortageHelp(article, stageId, timerControl.element, helpButton);
+    });
+    header.append(helpButton);
+  }
+
+  article.append(timerControl.element);
   return { article, timerControl };
+}
+
+function showShortageHelp(article, stageId, timerElement, button) {
+  const text = shortageHelpMessages[stageId];
+  if (!text) return;
+  let panel = article.querySelector('.challenge-help');
+  if (!panel) {
+    panel = document.createElement('p');
+    panel.className = 'challenge-help hidden';
+    article.insertBefore(panel, timerElement);
+  }
+  const isHidden = panel.classList.contains('hidden');
+  if (!isHidden && panel.dataset.stageId === stageId) {
+    panel.classList.add('hidden');
+    button?.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  panel.dataset.stageId = stageId;
+  panel.textContent = text;
+  panel.classList.remove('hidden');
+  button?.setAttribute('aria-expanded', 'true');
 }
 
 function createTimerControl() {
@@ -3080,9 +4269,9 @@ function renderSpireCalibration(context) {
     title.innerHTML = `<span class="highlight">${coil.label}</span> — ${coil.detail}`;
     const input = document.createElement('input');
     input.type = 'range';
-    input.min = '1';
+    input.min = '0';
     input.max = '100';
-    const startingValue = coil.target === 100 ? 99 : coil.target + 1;
+    const startingValue = 0;
     input.value = String(startingValue);
     input.dataset.id = coil.id;
     input.className = 'calibration-slider';
@@ -3962,10 +5151,6 @@ flashlightButton?.addEventListener('click', () => {
   useFlashlight();
 });
 
-flashNowButton?.addEventListener('click', () => {
-  useFlashlight({ silent: true });
-});
-
 abortFinalPuzzleButton?.addEventListener('click', () => {
   abortFinalPuzzle();
 });
@@ -3976,12 +5161,7 @@ finalPuzzleButton?.addEventListener('click', () => {
 });
 
 restartRunButton?.addEventListener('click', () => {
-  finalSection.classList.add('hidden');
-  finalText.textContent = '';
-  finalPuzzleButton?.setAttribute('disabled', 'true');
-  pointerSuspended = false;
-  refreshPointerVisibility();
-  setScreen('intro');
+  window.location.reload();
 });
 
 pointerSwitch?.addEventListener('change', (event) => {
