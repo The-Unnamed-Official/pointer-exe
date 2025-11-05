@@ -18,6 +18,7 @@ const entityApparition = document.querySelector('#entity-apparition');
 const sessionLabel = document.querySelector('#session-label');
 const flashlightButton = document.querySelector('[data-action="flashlight"]');
 const flashlightIndicator = document.querySelector('#flashlight-indicator');
+const flashlightBeam = document.querySelector('#flashlight-beam');
 const tutorialOverlay = document.querySelector('#tutorial-overlay');
 const tutorialDismissButton = document.querySelector('#tutorial-dismiss');
 
@@ -1704,8 +1705,8 @@ let stalkerEntityRect = null;
 
 let finalPuzzleState = null;
 
-const FLICKER_MIN_DELAY_MS = 2 * 60 * 1000;
-const FLICKER_MAX_DELAY_MS = 30 * 60 * 1000;
+const FLICKER_MIN_DELAY_MS = 5000;
+const FLICKER_MAX_DELAY_MS = 3 * 60 * 1000;
 const FLICKER_FAIL_THRESHOLD_MS = 8000;
 const EYES_REQUIRED_HOLD_MS = 5000;
 const LIGHTS_AUDIO_FADE_MS = 5 * 60 * 1000;
@@ -1720,6 +1721,17 @@ let lightsAudioFadeRaf = null;
 let lightsAudioFadeStart = 0;
 let lightsAudioFadeDuration = 0;
 let lightsAudioStartVolume = 0;
+
+const PARANOIA_HOLD_THRESHOLD_MS = 2000;
+const PARANOIA_DURATION_MS = 60 * 1000;
+const PARANOIA_WIGGLE_AMPLITUDE_PX = 26;
+const PARANOIA_WIGGLE_SPEED = 0.0022;
+let manualEyesActive = false;
+let manualEyesParanoiaTimeout = null;
+let paranoiaActive = false;
+let paranoiaStartTime = 0;
+let paranoiaPhaseOffset = 0;
+let paranoiaTimeout = null;
 
 const ENTITY_MIN_DELAY_MS = 20 * 1000;
 const ENTITY_MAX_DELAY_MS = 60 * 1000;
@@ -1983,7 +1995,20 @@ function ensurePointerAnimation() {
     const target = resolvePointerAnimationTarget(timestamp);
     pointerPosition.x += (target.x - pointerPosition.x) * 0.18;
     pointerPosition.y += (target.y - pointerPosition.y) * 0.18;
-    pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
+    let displayX = pointerPosition.x;
+    let displayY = pointerPosition.y;
+    if (paranoiaActive) {
+      const base = typeof timestamp === 'number' ? timestamp : 0;
+      const elapsed = base - paranoiaStartTime;
+      const phase = elapsed * PARANOIA_WIGGLE_SPEED;
+      const wiggleX = Math.sin(phase + paranoiaPhaseOffset) * PARANOIA_WIGGLE_AMPLITUDE_PX;
+      const wiggleY = Math.sin(phase * 0.6 + paranoiaPhaseOffset * 0.7) *
+        (PARANOIA_WIGGLE_AMPLITUDE_PX * 0.35);
+      displayX += wiggleX;
+      displayY += wiggleY;
+    }
+    pointerGhost.style.transform = `translate3d(${displayX}px, ${displayY}px, 0)`;
+    updateFlashlightBeamPosition(displayX, displayY);
     requestAnimationFrame(animate);
   };
   requestAnimationFrame(animate);
@@ -1996,6 +2021,7 @@ document.addEventListener('pointermove', (event) => {
     pointerPosition.x = event.clientX;
     pointerPosition.y = event.clientY;
     pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
+    updateFlashlightBeamPosition(pointerPosition.x, pointerPosition.y);
   }
   handleStalkerPointer(event);
 });
@@ -2006,6 +2032,7 @@ function setupFromStorage() {
   updatePointerPreference(storedPointer !== '0');
   updateStaticPreference(storedStatic !== '0');
   pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
+  updateFlashlightBeamPosition(pointerPosition.x, pointerPosition.y);
   updateFlashlightIndicator();
 }
 
@@ -2061,6 +2088,11 @@ function playOneShot(audio, { volume = 1 } = {}) {
 function updateFlashlightIndicator() {
   if (!flashlightIndicator) return;
   flashlightIndicator.classList.remove('active', 'on-cooldown', 'offline');
+  if (paranoiaActive) {
+    flashlightIndicator.textContent = 'paranoid';
+    flashlightIndicator.classList.add('on-cooldown', 'offline');
+    return;
+  }
   if (flashlightActive) {
     flashlightIndicator.textContent = 'active';
     flashlightIndicator.classList.add('active');
@@ -2071,6 +2103,18 @@ function updateFlashlightIndicator() {
   } else {
     flashlightIndicator.textContent = 'ready';
   }
+}
+
+function setFlashlightBeamActive(active) {
+  if (!flashlightBeam) return;
+  flashlightBeam.setAttribute('aria-hidden', active ? 'false' : 'true');
+  flashlightBeam.classList.toggle('active', !!active);
+}
+
+function updateFlashlightBeamPosition(x = pointerPosition.x, y = pointerPosition.y) {
+  if (!flashlightBeam) return;
+  flashlightBeam.style.setProperty('--pointer-x', `${x}px`);
+  flashlightBeam.style.setProperty('--pointer-y', `${y}px`);
 }
 
 function clearFlashlightAutoTimeout() {
@@ -2115,6 +2159,7 @@ function deactivateFlashlight({ silent = false } = {}) {
   flashlightActive = false;
   clearFlashlightAutoTimeout();
   stopFlashlightBreakTimer();
+  setFlashlightBeamActive(false);
   if (!silent) {
     playOneShot(flashOffAudio, { volume: 0.85 });
   }
@@ -2143,6 +2188,8 @@ function activateFlashlight({ silent = false, auto = false, duration = null, byp
   } else if (!bypassBreak) {
     startFlashlightBreakTimer();
   }
+  setFlashlightBeamActive(true);
+  updateFlashlightBeamPosition();
   updateFlashlightIndicator();
   return true;
 }
@@ -2218,8 +2265,115 @@ function resetFlashlightState() {
   updateFlashlightIndicator();
 }
 
+function cancelManualEyesParanoiaCheck() {
+  if (manualEyesParanoiaTimeout) {
+    clearTimeout(manualEyesParanoiaTimeout);
+    manualEyesParanoiaTimeout = null;
+  }
+}
+
+function scheduleManualEyesParanoiaCheck() {
+  cancelManualEyesParanoiaCheck();
+  if (!manualEyesActive) return;
+  if (flickerActive || entityActive) return;
+  manualEyesParanoiaTimeout = setTimeout(() => triggerParanoiaFromEyes(), PARANOIA_HOLD_THRESHOLD_MS);
+}
+
+function activateManualEyes() {
+  if (!gameActive) return;
+  if (manualEyesActive) return;
+  if (flickerActive || eyesHoldActive) return;
+  manualEyesActive = true;
+  setOverlayState(eyesOverlay, true);
+  setStatus('Eyes closed. Breathe with the static.', { duration: 2200 });
+  scheduleManualEyesParanoiaCheck();
+}
+
+function deactivateManualEyes({ silent = false } = {}) {
+  if (!manualEyesActive) return;
+  manualEyesActive = false;
+  cancelManualEyesParanoiaCheck();
+  if (!eyesHoldActive) {
+    setOverlayState(eyesOverlay, false);
+  }
+  if (!silent) {
+    setStatus('Eyes open. Focus returns.', { duration: 2000 });
+  }
+}
+
+function toggleManualEyes() {
+  if (manualEyesActive) {
+    deactivateManualEyes();
+  } else {
+    activateManualEyes();
+  }
+}
+
+function triggerParanoiaFromEyes() {
+  manualEyesParanoiaTimeout = null;
+  if (!manualEyesActive) return;
+  if (flickerActive || entityActive) {
+    scheduleManualEyesParanoiaCheck();
+    return;
+  }
+  manualEyesActive = false;
+  if (!eyesHoldActive) {
+    setOverlayState(eyesOverlay, false);
+  }
+  if (flashlightActive) {
+    deactivateFlashlight({ silent: true });
+  }
+  startParanoia();
+  setStatus('Lingering in safe dark warps your focus. Paranoia rattles the pointer.', {
+    duration: 4200,
+  });
+}
+
+function startParanoia() {
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  paranoiaStartTime = now;
+  paranoiaPhaseOffset = Math.random() * Math.PI * 2;
+  if (paranoiaTimeout) {
+    clearTimeout(paranoiaTimeout);
+  }
+  paranoiaTimeout = setTimeout(() => endParanoia(), PARANOIA_DURATION_MS);
+  if (!paranoiaActive) {
+    paranoiaActive = true;
+    document.body?.classList.add('is-paranoid');
+    updateFlashlightIndicator();
+  }
+}
+
+function endParanoia({ silent = false } = {}) {
+  if (paranoiaTimeout) {
+    clearTimeout(paranoiaTimeout);
+    paranoiaTimeout = null;
+  }
+  if (!paranoiaActive) return;
+  paranoiaActive = false;
+  document.body?.classList.remove('is-paranoid');
+  updateFlashlightIndicator();
+  if (!silent) {
+    setStatus('Breathing steadies. Control returns.', { duration: 2600 });
+  }
+}
+
+function resetManualEyesState() {
+  manualEyesActive = false;
+  cancelManualEyesParanoiaCheck();
+  if (!eyesHoldActive) {
+    setOverlayState(eyesOverlay, false);
+  }
+}
+
 function useFlashlight({ silent = false, force = false } = {}) {
   if (!gameActive) return;
+  if (paranoiaActive && !force) {
+    if (!silent) {
+      setStatus('Your hands shake; the flashlight refuses to stay lit.', { duration: 2600 });
+    }
+    return;
+  }
   if (!flashlightReady) {
     if (!silent) {
       setStatus('Flashlight circuit offline. Wait for the repair cycle.', { duration: 2600 });
@@ -2322,6 +2476,7 @@ function scheduleLightsFlicker() {
     flickerTimeout = null;
   }
   if (!gameActive) return;
+  if (currentLevelIndex < 3) return;
   const delay = FLICKER_MIN_DELAY_MS + Math.random() * (FLICKER_MAX_DELAY_MS - FLICKER_MIN_DELAY_MS);
   flickerTimeout = setTimeout(() => {
     flickerTimeout = null;
@@ -2341,6 +2496,7 @@ function cancelLightsFlicker() {
   flickerActive = false;
   eyesHoldActive = false;
   eyesHoldStart = null;
+  resetManualEyesState();
   setOverlayState(flickerOverlay, false);
   setOverlayState(eyesOverlay, false);
   stopLightsAudioFade();
@@ -2354,6 +2510,10 @@ function triggerLightsFlicker() {
   if (flickerActive || !gameActive) {
     scheduleLightsFlicker();
     return;
+  }
+  cancelManualEyesParanoiaCheck();
+  if (manualEyesActive) {
+    manualEyesActive = false;
   }
   flickerActive = true;
   setOverlayState(flickerOverlay, true);
@@ -2406,6 +2566,10 @@ function failLightsFlicker() {
 
 function beginEyesHold() {
   if (!flickerActive || eyesHoldActive) return;
+  cancelManualEyesParanoiaCheck();
+  if (manualEyesActive) {
+    manualEyesActive = false;
+  }
   eyesHoldActive = true;
   eyesHoldStart = typeof performance !== 'undefined' ? performance.now() : Date.now();
   setOverlayState(eyesOverlay, true);
@@ -2470,6 +2634,7 @@ function triggerEntitySpawn() {
     scheduleEntitySpawn();
     return;
   }
+  cancelManualEyesParanoiaCheck();
   entityActive = true;
   entityExposureStart = null;
   const viewportWidth = window.innerWidth;
@@ -2593,6 +2758,10 @@ function hideTutorialOverlay() {
 
 function toggleFlashlightFromInput() {
   if (!gameActive) return;
+  if (paranoiaActive) {
+    setStatus('Your hands shake; the flashlight refuses to stay lit.', { duration: 2600 });
+    return;
+  }
   if (flashlightActive) {
     deactivateFlashlight();
     setStatus('Flashlight dimmed.', { duration: 2000 });
@@ -3165,6 +3334,8 @@ function startGame() {
   finalText.textContent = '';
   finalPuzzleButton?.setAttribute('disabled', 'true');
   resetFlashlightState();
+  endParanoia({ silent: true });
+  resetManualEyesState();
   cancelStalkerEvent();
   stalkerAvailable = false;
   stalkerActive = false;
@@ -6161,7 +6332,11 @@ document.addEventListener('keydown', (event) => {
   }
   if (key === 'h') {
     event.preventDefault();
-    beginEyesHold();
+    if (flickerActive) {
+      beginEyesHold();
+    } else if (!event.repeat) {
+      toggleManualEyes();
+    }
     return;
   }
   if (event.key === 'Escape') {
@@ -6177,7 +6352,9 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('keyup', (event) => {
   if (introActive) return;
   if (event.key?.toLowerCase() === 'h') {
-    endEyesHold();
+    if (flickerActive || eyesHoldActive) {
+      endEyesHold();
+    }
   }
 });
 
@@ -6191,6 +6368,7 @@ window.addEventListener('resize', () => {
   if (!gameActive) return;
   pointerPosition.x = Math.min(window.innerWidth, Math.max(0, pointerPosition.x));
   pointerPosition.y = Math.min(window.innerHeight, Math.max(0, pointerPosition.y));
+  updateFlashlightBeamPosition(pointerPosition.x, pointerPosition.y);
   realignMapLabels();
 });
 
