@@ -261,6 +261,24 @@
               <span class="switch-caption" data-on="on" data-off="off"></span>
             </label>
           </div>
+          <div class="settings-option volume-option">
+            <div class="option-meta">
+              <label for="volume-slider" class="option-label">signal volume</label>
+              <span id="volume-value" class="volume-value">80%</span>
+            </div>
+            <div class="slider-shell">
+              <input
+                type="range"
+                id="volume-slider"
+                class="volume-slider"
+                min="0"
+                max="100"
+                step="1"
+                value="80"
+                aria-describedby="volume-value"
+              />
+            </div>
+          </div>
         </div>
         <footer class="modal-footer">
           <button class="glitch-button primary" data-action="apply-settings" type="button">
