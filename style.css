@@ -2360,12 +2360,36 @@ body.static-muted .crt-overlay {
   align-items: center;
   justify-content: center;
   z-index: 110;
-  opacity: 0;
+  --entity-visibility: 0;
+  --entity-shake-x: 0px;
+  --entity-shake-y: 0px;
+  --entity-shake-rot: 0deg;
+  --entity-shake-blur: 0px;
+  opacity: var(--entity-visibility);
   transition: opacity 180ms ease;
 }
 
 .entity-apparition.active {
-  opacity: 1;
+  --entity-visibility: 1;
+}
+
+.entity-apparition .entity-visual {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate3d(var(--entity-shake-x), var(--entity-shake-y), 0)
+    rotate(var(--entity-shake-rot));
+  filter: drop-shadow(0 0 12px rgba(172, 180, 196, 0.45));
+  transition: filter 140ms ease;
+}
+
+.entity-apparition.glitching .entity-visual {
+  filter: drop-shadow(0 0 18px rgba(194, 205, 228, 0.75))
+    blur(var(--entity-shake-blur)) contrast(1.25) saturate(1.4);
+  mix-blend-mode: screen;
 }
 
 .entity-apparition .entity-shell {
@@ -2387,6 +2411,10 @@ body.static-muted .crt-overlay {
   box-shadow: 0 0 18px rgba(180, 192, 210, 0.8);
 }
 
+.entity-apparition.glitching .entity-core {
+  animation: entityGlitchFlicker 70ms steps(2, end) infinite;
+}
+
 @keyframes entityPulse {
   0%,
   100% {
@@ -2400,6 +2428,16 @@ body.static-muted .crt-overlay {
   75% {
     transform: scale(1.12);
     opacity: 1;
+  }
+}
+
+@keyframes entityGlitchFlicker {
+  0%,
+  100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.25;
   }
 }
 
