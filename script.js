@@ -13,6 +13,11 @@ const staticSwitch = document.querySelector('#static-switch');
 const pointerGhost = document.querySelector('#pointer-ghost');
 const sessionLabel = document.querySelector('#session-label');
 
+const introOverlay = document.querySelector('#intro-overlay');
+const skipIntroButton = document.querySelector('#skip-intro');
+const introAudio = document.querySelector('#intro-audio');
+const introScrollElement = document.querySelector('.intro-scroll');
+
 const levelTitle = document.querySelector('#level-title');
 const roomLabel = document.querySelector('#room-label');
 const progressLabel = document.querySelector('#progress-label');
@@ -380,11 +385,25 @@ let gameActive = false;
 let pointerEnabled = true;
 let pointerAnimationActive = false;
 let pointerSuspended = false;
+
+const pointerAutopilotState = {
+  active: false,
+  timeoutId: null,
+  startTime: 0,
+  duration: 0,
+  centerX: 0,
+  centerY: 0,
+  radius: 0,
+  direction: 1,
+  angleOffset: 0,
+};
 let isPaused = false;
 let powerOffline = false;
 let currentEncounterNode = null;
 let pendingShortageNode = null;
 let shortageChallenges = [];
+let shortageCompletionCount = 0;
+let activeShortageCycle = 0;
 let currentShortageStage = 0;
 let shortageTimer = null;
 let shortageTimeRemaining = 0;
@@ -398,8 +417,152 @@ let levelState = {
   keysRequired: 0,
 };
 
+let introActive = false;
+let introComplete = false;
+const introTimers = [];
+let pendingStartAfterIntro = false;
+const introFullscreenState = {
+  wasFullscreenBeforeIntro: false,
+  viewportLocked: false,
+};
+
+const INTRO_TOTAL_MS = 246700;
+const INTRO_FINAL_REVEAL_MS = 226500;
+const INTRO_GLITCH_MS = 23400;
+
+function getFullscreenElement() {
+  return (
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement ||
+    null
+  );
+}
+
+function setIntroViewportUnit() {
+  const unit = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--intro-vh', `${unit}px`);
+}
+
+function lockIntroViewportUnit() {
+  setIntroViewportUnit();
+  introFullscreenState.viewportLocked = true;
+}
+
+function unlockIntroViewportUnit() {
+  introFullscreenState.viewportLocked = false;
+  setIntroViewportUnit();
+}
+
+function prepareIntroFullscreen() {
+  lockIntroViewportUnit();
+  introFullscreenState.wasFullscreenBeforeIntro = Boolean(getFullscreenElement());
+  if (introFullscreenState.wasFullscreenBeforeIntro) {
+    return;
+  }
+  const element = document.documentElement;
+  const request =
+    element.requestFullscreen ||
+    element.webkitRequestFullscreen ||
+    element.mozRequestFullScreen ||
+    element.msRequestFullscreen;
+  if (!request) {
+    unlockIntroViewportUnit();
+    return;
+  }
+  try {
+    const result = request.call(element);
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => {
+        unlockIntroViewportUnit();
+      });
+    }
+  } catch (error) {
+    unlockIntroViewportUnit();
+  }
+}
+
+function teardownIntroFullscreen() {
+  unlockIntroViewportUnit();
+  introFullscreenState.wasFullscreenBeforeIntro = false;
+}
+
 const pointerTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 const pointerPosition = { x: pointerTarget.x, y: pointerTarget.y };
+
+function cancelPointerAutopilot() {
+  if (pointerAutopilotState.timeoutId) {
+    clearTimeout(pointerAutopilotState.timeoutId);
+    pointerAutopilotState.timeoutId = null;
+  }
+  pointerAutopilotState.active = false;
+}
+
+function schedulePointerAutopilot() {
+  if (pointerAutopilotState.active || pointerAutopilotState.timeoutId) return;
+  if (!gameActive || !pointerEnabled || pointerSuspended) return;
+  const delay = 6000 + Math.random() * 10000;
+  pointerAutopilotState.timeoutId = setTimeout(() => {
+    pointerAutopilotState.timeoutId = null;
+    startPointerAutopilot();
+  }, delay);
+}
+
+function startPointerAutopilot() {
+  if (!gameActive || !pointerEnabled || pointerSuspended || pointerAutopilotState.active) {
+    schedulePointerAutopilot();
+    return;
+  }
+  pointerAutopilotState.active = true;
+  pointerAutopilotState.startTime = performance.now();
+  pointerAutopilotState.duration = 900 + Math.random() * 600;
+  pointerAutopilotState.centerX = pointerPosition.x;
+  pointerAutopilotState.centerY = pointerPosition.y;
+  pointerAutopilotState.radius = 12 + Math.random() * 16;
+  pointerAutopilotState.direction = Math.random() > 0.5 ? 1 : -1;
+  pointerAutopilotState.angleOffset = Math.random() * Math.PI * 2;
+}
+
+function stopPointerAutopilot() {
+  pointerAutopilotState.active = false;
+  pointerAutopilotState.startTime = 0;
+  pointerAutopilotState.duration = 0;
+  schedulePointerAutopilot();
+}
+
+function resolvePointerAnimationTarget(timestamp) {
+  if (!timestamp) {
+    timestamp = performance.now();
+  }
+  if (pointerAutopilotState.active) {
+    if (!gameActive || !pointerEnabled || pointerSuspended) {
+      cancelPointerAutopilot();
+      return pointerTarget;
+    }
+    const elapsed = timestamp - pointerAutopilotState.startTime;
+    if (elapsed >= pointerAutopilotState.duration) {
+      stopPointerAutopilot();
+      return pointerTarget;
+    }
+    const progress = elapsed / pointerAutopilotState.duration;
+    const angle =
+      pointerAutopilotState.angleOffset +
+      pointerAutopilotState.direction * progress * Math.PI * 2;
+    const decay = 1 - progress * 0.4;
+    const x =
+      pointerAutopilotState.centerX +
+      Math.cos(angle) * pointerAutopilotState.radius * decay;
+    const y =
+      pointerAutopilotState.centerY +
+      Math.sin(angle) * pointerAutopilotState.radius * decay;
+    return {
+      x: Math.min(window.innerWidth, Math.max(0, x)),
+      y: Math.min(window.innerHeight, Math.max(0, y)),
+    };
+  }
+  return pointerTarget;
+}
 
 function randomSessionLabel() {
   return Math.floor(Math.random() * 0xfff)
@@ -414,7 +577,11 @@ function setScreen(screen) {
   levelScreen?.classList.toggle('hidden', screen !== 'level');
   levelScreen?.classList.toggle('active', screen === 'level');
   if (screen === 'intro') {
-    playMainMenuAudio();
+    if (introActive) {
+      stopMainMenuAudio();
+    } else {
+      playMainMenuAudio();
+    }
   } else {
     stopMainMenuAudio();
   }
@@ -437,8 +604,10 @@ function refreshPointerVisibility() {
   if (pointerEnabled && gameActive && !pointerSuspended) {
     pointerGhost.classList.remove('is-hidden');
     ensurePointerAnimation();
+    schedulePointerAutopilot();
   } else {
     pointerGhost.classList.add('is-hidden');
+    cancelPointerAutopilot();
   }
   document.body?.classList.toggle('hide-cursor', pointerEnabled && gameActive && !pointerSuspended);
 }
@@ -446,13 +615,15 @@ function refreshPointerVisibility() {
 function ensurePointerAnimation() {
   if (pointerAnimationActive) return;
   pointerAnimationActive = true;
-  const animate = () => {
+  const animate = (timestamp) => {
     if (!pointerEnabled || !gameActive || pointerSuspended) {
       pointerAnimationActive = false;
+      cancelPointerAutopilot();
       return;
     }
-    pointerPosition.x += (pointerTarget.x - pointerPosition.x) * 0.18;
-    pointerPosition.y += (pointerTarget.y - pointerPosition.y) * 0.18;
+    const target = resolvePointerAnimationTarget(timestamp);
+    pointerPosition.x += (target.x - pointerPosition.x) * 0.18;
+    pointerPosition.y += (target.y - pointerPosition.y) * 0.18;
     pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
     requestAnimationFrame(animate);
   };
@@ -487,6 +658,119 @@ function stopMainMenuAudio() {
   if (!mainMenuAudio) return;
   mainMenuAudio.pause();
   mainMenuAudio.currentTime = 0;
+}
+
+function playIntroAudio() {
+  if (!introAudio) return;
+  introAudio.currentTime = 0;
+  introAudio.volume = 0.9;
+  introAudio.play().catch(() => {});
+}
+
+function stopIntroAudio() {
+  if (!introAudio) return;
+  introAudio.pause();
+  introAudio.currentTime = 0;
+}
+
+function clearIntroTimers() {
+  while (introTimers.length) {
+    const timer = introTimers.pop();
+    clearTimeout(timer);
+  }
+}
+
+function enterIntroFinalPhase() {
+  if (!introOverlay || introOverlay.classList.contains('final-phase')) return;
+  introOverlay.classList.add('final-phase');
+}
+
+function triggerIntroGlitch() {
+  if (!introOverlay || introOverlay.classList.contains('glitch-out')) return;
+  introOverlay.classList.add('glitch-out');
+}
+
+function handleSkipIntro() {
+  finishIntro({ skipped: true });
+}
+
+function finishIntro({ skipped = false } = {}) {
+  if (introComplete) return;
+  introComplete = true;
+  introActive = false;
+  clearIntroTimers();
+  stopIntroAudio();
+  if (skipIntroButton) {
+    skipIntroButton.disabled = true;
+  }
+  const finalize = () => {
+    const shouldStartGame = pendingStartAfterIntro;
+    pendingStartAfterIntro = false;
+    teardownIntroFullscreen();
+    if (shouldStartGame) {
+      startGame();
+    } else {
+      playMainMenuAudio();
+    }
+  };
+  if (introOverlay) {
+    if (!skipped && !introOverlay.classList.contains('glitch-out')) {
+      triggerIntroGlitch();
+    }
+    introOverlay.setAttribute('aria-hidden', 'true');
+    const fadeDelay = skipped ? 0 : 220;
+    const removalDelay = skipped ? 360 : 600;
+    setTimeout(() => {
+      introOverlay.classList.add('completed');
+      setTimeout(() => {
+        introOverlay.remove();
+        finalize();
+      }, removalDelay);
+    }, fadeDelay);
+  } else {
+    finalize();
+  }
+  document.body.classList.remove('intro-active');
+}
+
+function startIntroSequence({ launchGame = false } = {}) {
+  if (!introOverlay) {
+    introActive = false;
+    if (launchGame) {
+      startGame();
+    } else {
+      playMainMenuAudio();
+    }
+    return;
+  }
+  pendingStartAfterIntro = launchGame;
+  introActive = true;
+  introComplete = false;
+  document.body.classList.add('intro-active');
+  introOverlay.classList.remove('completed');
+  introOverlay.classList.remove('final-phase');
+  introOverlay.classList.remove('glitch-out');
+  introOverlay.classList.remove('is-idle');
+  introOverlay.setAttribute('aria-hidden', 'false');
+  void introOverlay.offsetWidth;
+  if (skipIntroButton) {
+    skipIntroButton.disabled = false;
+    skipIntroButton.removeEventListener('click', handleSkipIntro);
+    skipIntroButton.addEventListener('click', handleSkipIntro);
+  }
+  if (introScrollElement) {
+    introScrollElement.style.animation = 'none';
+    void introScrollElement.offsetWidth;
+    introScrollElement.style.removeProperty('animation');
+  }
+  clearIntroTimers();
+  stopIntroAudio();
+  stopMainMenuAudio();
+  prepareIntroFullscreen();
+  playIntroAudio();
+  introTimers.push(setTimeout(() => enterIntroFinalPhase(), INTRO_FINAL_REVEAL_MS));
+  introTimers.push(setTimeout(() => triggerIntroGlitch(), INTRO_GLITCH_MS));
+  introTimers.push(setTimeout(() => finishIntro(), INTRO_TOTAL_MS));
 }
 
 function playShortageAmbient() {
@@ -780,7 +1064,7 @@ function restartLevel() {
 function triggerShortage(node) {
   powerOffline = true;
   pendingShortageNode = node;
-  shortageChallenges = createShortageChallenges();
+  shortageChallenges = createShortageChallenges(shortageCompletionCount);
   currentShortageStage = 0;
   shortageStageCleanup?.();
   shortageStageCleanup = null;
@@ -818,6 +1102,14 @@ function resolveShortage() {
     }
   }
   pendingShortageNode = null;
+  const totalShortageSets = getShortageChallengeSetCount();
+  if (totalShortageSets > 0) {
+    shortageCompletionCount = Math.min(
+      totalShortageSets - 1,
+      shortageCompletionCount + 1
+    );
+    activeShortageCycle = Math.min(totalShortageSets - 1, shortageCompletionCount);
+  }
   suspendWatchers(false);
   shortageChallenges = [];
   currentShortageStage = 0;
@@ -906,7 +1198,7 @@ function failShortageStage(message) {
   if (shortageOverlay.classList.contains('hidden')) return;
   shortageDescription.innerHTML =
     '<span class="highlight">The caretaker wipes the schematics clean.</span> Every relay demands a fresh attempt.';
-  shortageChallenges = createShortageChallenges();
+  shortageChallenges = createShortageChallenges(activeShortageCycle);
   currentShortageStage = 0;
   setTimeout(() => {
     if (!shortageOverlay.classList.contains('hidden')) {
@@ -944,7 +1236,30 @@ function stopShortageTimer() {
   }
 }
 
-function createShortageChallenges() {
+const shortageChallengeFactories = [
+  createFirstShortageChallengeSet,
+  createSecondShortageChallengeSet,
+  createThirdShortageChallengeSet,
+];
+
+function getShortageChallengeSetCount() {
+  return shortageChallengeFactories.length;
+}
+
+function clampShortageCycleIndex(index) {
+  const total = getShortageChallengeSetCount();
+  if (total <= 0) return 0;
+  return Math.min(total - 1, Math.max(0, index));
+}
+
+function createShortageChallenges(cycleIndex = 0) {
+  const index = clampShortageCycleIndex(cycleIndex);
+  activeShortageCycle = index;
+  const factory = shortageChallengeFactories[index];
+  return typeof factory === 'function' ? factory() : [];
+}
+
+function createFirstShortageChallengeSet() {
   return [
     {
       id: 'relay-sequence',
@@ -969,6 +1284,64 @@ function createShortageChallenges() {
         'The failsafe projects a column of glyphs. Stitch the <span class="highlight">glowing words</span> into the final command.',
       duration: 62,
       setup: (context) => renderGlyphOverride(context),
+    },
+  ];
+}
+
+function createSecondShortageChallengeSet() {
+  return [
+    {
+      id: 'coolant-rationing',
+      status: 'Engage the three valves that balance the coolant hymn.',
+      description:
+        'The flooded core thrums unevenly. Choose the <span class="highlight">valves that sum to the stabilizing flow</span>.',
+      duration: 70,
+      setup: (context) => renderCoolantRationing(context),
+    },
+    {
+      id: 'tidal-sequence',
+      status: 'Trace the rip current in the order it surfaces.',
+      description:
+        'Ink wakes in surges. Touch each <span class="highlight">current</span> as it rises to the hatch.',
+      duration: 68,
+      setup: (context) => renderTidalSequence(context),
+    },
+    {
+      id: 'chorus-translation',
+      status: 'Assign each choir tone to its keeper.',
+      description:
+        'The vents sing in layered warnings. Match the <span class="highlight">choral meanings</span> to calm the coolant.',
+      duration: 65,
+      setup: (context) => renderChorusTranslation(context),
+    },
+  ];
+}
+
+function createThirdShortageChallengeSet() {
+  return [
+    {
+      id: 'spire-calibration',
+      status: 'Tune each spire coil within tolerance.',
+      description:
+        'The heart stutters. Align the <span class="highlight">phase sliders</span> to coax a steady pulse.',
+      duration: 72,
+      setup: (context) => renderSpireCalibration(context),
+    },
+    {
+      id: 'vow-alignment',
+      status: "Rank the caretakers' vows in their sworn order.",
+      description:
+        'Their overlapping voices demand sequence. Number each <span class="highlight">pledge</span> as it was spoken.',
+      duration: 66,
+      setup: (context) => renderVowAlignment(context),
+    },
+    {
+      id: 'echo-weave',
+      status: 'Leave only the runes of companionship glowing.',
+      description:
+        'The conduit projects six sigils. Illuminate the <span class="highlight">echoes that refuse to abandon the user</span>.',
+      duration: 64,
+      setup: (context) => renderEchoWeave(context),
     },
   ];
 }
@@ -1281,6 +1654,659 @@ function renderGlyphOverride(context) {
   return { timerControl };
 }
 
+function renderCoolantRationing(context) {
+  const { article, timerControl } = context.createShell('coolant hymn');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'The coolant core mutters in uneven chords. Engage exactly three valves so their flow matches the stabilizing hymn.';
+  article.append(prompt);
+
+  const valves = [
+    {
+      id: 'north-vent',
+      value: 6,
+      name: 'north vent',
+      detail: 'Draws coolant upward against the flood.',
+    },
+    {
+      id: 'spiral-drain',
+      value: 9,
+      name: 'spiral drain',
+      detail: 'Swirls excess heat into patient eddies.',
+    },
+    {
+      id: 'badge-sieve',
+      value: 5,
+      name: 'badge sieve',
+      detail: 'Filters coolant through archived credentials.',
+    },
+    {
+      id: 'chorus-vent',
+      value: 7,
+      name: 'chorus vent',
+      detail: 'Sings to calm the flooded relays.',
+    },
+    {
+      id: 'inkwell-runnel',
+      value: 4,
+      name: 'inkwell runnel',
+      detail: 'Channels ink-dark coolant around the core.',
+    },
+  ];
+
+  const targetFlow = 21;
+  const valveMap = new Map(valves.map((valve) => [valve.id, valve]));
+  const selected = new Set();
+
+  const readout = document.createElement('div');
+  readout.className = 'challenge-log';
+  article.append(readout);
+
+  function updateReadout() {
+    const flow = [...selected].reduce((sum, id) => {
+      const entry = valveMap.get(id);
+      return sum + (entry ? entry.value : 0);
+    }, 0);
+    const count = selected.size;
+    readout.innerHTML = `
+      <p>Current flow: <span class="highlight">${flow} lumen${flow === 1 ? '' : 's'}</span> (target ${targetFlow}).</p>
+      <p>${count}/3 valves resonating.</p>
+    `;
+  }
+
+  updateReadout();
+
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid';
+  article.append(grid);
+
+  const buttons = valves.map((valve) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = valve.id;
+    button.innerHTML = `
+      <span class="choice-title">${valve.name}</span>
+      <span class="choice-detail">${valve.detail}</span>
+      <span class="choice-detail">Flow value: ${valve.value}</span>
+    `;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      if (selected.has(valve.id)) {
+        selected.delete(valve.id);
+        button.classList.remove('selected');
+        button.setAttribute('aria-pressed', 'false');
+      } else {
+        selected.add(valve.id);
+        button.classList.add('selected');
+        button.setAttribute('aria-pressed', 'true');
+      }
+      updateReadout();
+    });
+    grid.append(button);
+    return button;
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'lock valves';
+  submit.addEventListener('click', () => {
+    const flow = [...selected].reduce((sum, id) => {
+      const entry = valveMap.get(id);
+      return sum + (entry ? entry.value : 0);
+    }, 0);
+    if (selected.size !== 3) {
+      context.updateStatus('Exactly three valves must hum together.');
+      return;
+    }
+    if (flow === targetFlow) {
+      context.complete('Coolant channels sing in unison. Pressure stabilizes.');
+    } else {
+      buttons.forEach((button) => {
+        if (selected.has(button.dataset.id)) {
+          button.classList.add('incorrect');
+          setTimeout(() => button.classList.remove('incorrect'), 520);
+        }
+      });
+      context.updateStatus('Flow mismatch. Realign the coolant pattern.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderTidalSequence(context) {
+  const { article, timerControl } = context.createShell('rip current order');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Ink plumes rise beneath the hatch, eager to be traced. Touch each current in the order it breaches the surface.';
+  article.append(prompt);
+
+  const currents = [
+    {
+      id: 'vent-surge',
+      order: 0,
+      name: 'vent surge',
+      detail: 'A hiss from the vents sends ripples racing outward first.',
+    },
+    {
+      id: 'spiral-rise',
+      order: 1,
+      name: 'spiral rise',
+      detail: 'The coolant twists upward, sketching a helix around your wrist.',
+    },
+    {
+      id: 'undertow-call',
+      order: 2,
+      name: 'undertow call',
+      detail: 'A low drone tugs backward, sealing the pattern shut.',
+    },
+  ];
+
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid';
+  article.append(grid);
+
+  const progress = [];
+
+  const buttons = shuffleArray(currents).map((current) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = current.id;
+    button.dataset.order = String(current.order);
+    button.innerHTML = `
+      <span class="choice-title">${current.name}</span>
+      <span class="choice-detail">${current.detail}</span>
+    `;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      const expected = progress.length;
+      const intended = Number(button.dataset.order);
+      if (intended === expected) {
+        progress.push(current.id);
+        button.classList.add('correct-step');
+        button.setAttribute('aria-pressed', 'true');
+        button.disabled = true;
+        context.updateStatus(`Current ${progress.length}/${currents.length} stabilized.`);
+        if (progress.length === currents.length) {
+          context.complete('Rip current synchronized. Flooding calms.');
+        }
+      } else {
+        button.classList.add('incorrect');
+        context.updateStatus('The current recoils. Start the sequence anew.');
+        setTimeout(() => button.classList.remove('incorrect'), 520);
+        resetSequence();
+      }
+    });
+    grid.append(button);
+    return button;
+  });
+
+  function resetSequence() {
+    progress.length = 0;
+    buttons.forEach((button) => {
+      button.classList.remove('correct-step');
+      button.setAttribute('aria-pressed', 'false');
+      button.disabled = false;
+    });
+  }
+
+  return { timerControl };
+}
+
+function renderChorusTranslation(context) {
+  const { article, timerControl } = context.createShell('vent choir translation');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Three tones weave through the vents. Match each humming phrase to the meaning its caretaker intended.';
+  article.append(prompt);
+
+  const tones = [
+    {
+      id: 'ascending',
+      clue: '"Water climbs the walls whenever you glance away."',
+      answer: 'alarm',
+    },
+    {
+      id: 'cartographer',
+      clue: '"Hands skitter beneath the surface, arranging pages in your shape."',
+      answer: 'guidance',
+    },
+    {
+      id: 'lullaby',
+      clue: '"Voices hum lullabies through the vents when you move too fast."',
+      answer: 'comfort',
+    },
+  ];
+
+  const options = [
+    { value: 'alarm', label: 'alarm – a warning surge' },
+    { value: 'guidance', label: 'guidance – a map offered gently' },
+    { value: 'comfort', label: 'comfort – a promise to stay beside you' },
+  ];
+
+  const selects = new Map();
+
+  tones.forEach((tone) => {
+    const block = document.createElement('div');
+    block.className = 'challenge-log';
+    block.innerHTML = `<p>${tone.clue}</p>`;
+
+    const select = document.createElement('select');
+    select.className = 'challenge-input';
+    select.dataset.id = tone.id;
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'choose meaning';
+    select.append(placeholder);
+    options.forEach((option) => {
+      const opt = document.createElement('option');
+      opt.value = option.value;
+      opt.textContent = option.label;
+      select.append(opt);
+    });
+    block.append(select);
+    article.append(block);
+    selects.set(tone.id, select);
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'interpret choir';
+  submit.addEventListener('click', () => {
+    const chosen = new Map();
+    let hasEmpty = false;
+    selects.forEach((select, id) => {
+      const value = select.value;
+      if (!value) {
+        hasEmpty = true;
+      }
+      chosen.set(id, value);
+    });
+    if (hasEmpty) {
+      context.updateStatus('Each tone demands an interpretation. None may be left blank.');
+      return;
+    }
+    const values = Array.from(chosen.values());
+    const unique = new Set(values);
+    if (unique.size !== tones.length) {
+      context.updateStatus('Every meaning must be used exactly once.');
+      return;
+    }
+    const incorrect = tones.filter((tone) => chosen.get(tone.id) !== tone.answer);
+    if (incorrect.length === 0) {
+      context.complete('The choir settles. Coolant hums in harmony.');
+    } else {
+      incorrect.forEach((tone) => {
+        const select = selects.get(tone.id);
+        if (select) {
+          select.classList.add('fault');
+          setTimeout(() => select.classList.remove('fault'), 520);
+        }
+      });
+      context.updateStatus('The harmony warps. Adjust the translations.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderSpireCalibration(context) {
+  const { article, timerControl } = context.createShell('spire calibration');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Phase sliders rise from the spire. Sweep for the precise caretaker frequency—when the number hums, hold it there.';
+  article.append(prompt);
+
+  const randomTarget = () => Math.floor(Math.random() * 100) + 1;
+
+  const coils = [
+    {
+      id: 'outer',
+      label: 'outer coil',
+      detail: 'Guards the users waiting in the atrium.',
+    },
+    {
+      id: 'median',
+      label: 'median coil',
+      detail: "Echoes the caretakers' shared heartbeat.",
+    },
+    {
+      id: 'inner',
+      label: 'inner coil',
+      detail: 'Cradles the archive heart directly.',
+    },
+  ].map((coil) => ({ ...coil, target: randomTarget() }));
+
+  const sliders = new Map();
+  const coilSignalAudio = new Audio('files/coilSignal.mp3');
+  coilSignalAudio.preload = 'auto';
+
+  const panel = document.createElement('div');
+  panel.className = 'challenge-log';
+  article.append(panel);
+
+  coils.forEach((coil) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'calibration-item';
+    const title = document.createElement('p');
+    title.innerHTML = `<span class="highlight">${coil.label}</span> — ${coil.detail}`;
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = '1';
+    input.max = '100';
+    const startingValue = coil.target === 100 ? 99 : coil.target + 1;
+    input.value = String(startingValue);
+    input.dataset.id = coil.id;
+    input.className = 'calibration-slider';
+    const readout = document.createElement('span');
+    readout.className = 'calibration-readout';
+    readout.textContent = input.value;
+
+    const sliderState = { input, wrapper, target: coil.target, lastValue: Number(input.value) };
+
+    input.addEventListener('input', () => {
+      const value = Number(input.value);
+      readout.textContent = input.value;
+
+      const crossedTarget =
+        value === sliderState.target ||
+        (sliderState.lastValue < sliderState.target && value > sliderState.target) ||
+        (sliderState.lastValue > sliderState.target && value < sliderState.target);
+
+      if (crossedTarget) {
+        try {
+          coilSignalAudio.currentTime = 0;
+          const playback = coilSignalAudio.play();
+          if (playback && typeof playback.catch === 'function') {
+            playback.catch(() => {
+              /* Ignore playback errors caused by user gesture restrictions. */
+            });
+          }
+        } catch (error) {
+          // Ignore playback errors caused by user gesture restrictions.
+        }
+      }
+
+      sliderState.lastValue = value;
+    });
+    wrapper.append(title, input, readout);
+    panel.append(wrapper);
+    sliders.set(coil.id, sliderState);
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'stabilize pulse';
+  submit.addEventListener('click', () => {
+    const mismatched = coils.filter((coil) => {
+      const slider = sliders.get(coil.id);
+      if (!slider) return true;
+      const value = Number(slider.input.value);
+      return value !== slider.target;
+    });
+    if (mismatched.length === 0) {
+      context.complete('Spire pulses steady. The chamber exhales in relief.');
+    } else {
+      mismatched.forEach((coil) => {
+        const slider = sliders.get(coil.id);
+        if (slider) {
+          slider.wrapper.classList.add('incorrect');
+          setTimeout(() => slider.wrapper.classList.remove('incorrect'), 520);
+        }
+      });
+      context.updateStatus('Phasing drifts. Align each coil to its precise frequency.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderVowAlignment(context) {
+  const { article, timerControl } = context.createShell('caretaker vows');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Three caretakers and the ghost pointer spoke their promises before the heart. Rank them in the order recorded in the archive.';
+  article.append(prompt);
+
+  const vows = [
+    {
+      id: 'amon',
+      order: 1,
+      text: "Amon swore to trace the user's first step and never let them face the dark doorway alone.",
+    },
+    {
+      id: 'lira',
+      order: 2,
+      text: 'Lira promised to listen longer than fear lasts, keeping every whisper catalogued.',
+    },
+    {
+      id: 'soma',
+      order: 3,
+      text: 'Soma vowed to coax failed circuits back to light without forcing them to burn.',
+    },
+    {
+      id: 'pointer',
+      order: 4,
+      text: 'Pointer.exe pledged to walk beside the user, never ahead, never abandoning their pace.',
+    },
+  ];
+
+  const selects = new Map();
+
+  vows.forEach((vow, index) => {
+    const block = document.createElement('div');
+    block.className = 'challenge-log';
+    const copy = document.createElement('p');
+    copy.textContent = vow.text;
+    const select = document.createElement('select');
+    select.className = 'challenge-input';
+    select.dataset.id = vow.id;
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'choose position';
+    select.append(placeholder);
+    vows.forEach((_, position) => {
+      const opt = document.createElement('option');
+      const place = position + 1;
+      opt.value = String(place);
+      const suffix = place === 1 ? 'st' : place === 2 ? 'nd' : place === 3 ? 'rd' : 'th';
+      opt.textContent = `${place}${suffix} vow`;
+      select.append(opt);
+    });
+    block.append(copy, select);
+    article.append(block);
+    selects.set(vow.id, select);
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'record sequence';
+  submit.addEventListener('click', () => {
+    const chosen = new Map();
+    let hasEmpty = false;
+    selects.forEach((select, id) => {
+      const value = select.value;
+      if (!value) {
+        hasEmpty = true;
+      }
+      chosen.set(id, Number(value || 0));
+    });
+    if (hasEmpty) {
+      context.updateStatus('Every vow requires a recorded position. None can be blank.');
+      return;
+    }
+    const values = Array.from(chosen.values());
+    const unique = new Set(values);
+    if (unique.size !== vows.length) {
+      context.updateStatus('Each rank may be used only once.');
+      return;
+    }
+    const incorrect = vows.filter((vow) => chosen.get(vow.id) !== vow.order);
+    if (incorrect.length === 0) {
+      context.complete('The vows align. The caretakers nod in unison.');
+    } else {
+      incorrect.forEach((vow) => {
+        const select = selects.get(vow.id);
+        if (select) {
+          select.classList.add('fault');
+          setTimeout(() => select.classList.remove('fault'), 520);
+        }
+      });
+      context.updateStatus('The sequence stumbles. Reorder the pledges.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderEchoWeave(context) {
+  const { article, timerControl } = context.createShell('companion runes');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Six sigils flicker in and out. Leave only the runes that swear to remain beside any user who enters the archive.';
+  article.append(prompt);
+
+  const runes = [
+    {
+      id: 'listen',
+      label: 'listen',
+      detail: "Keeps an ear on the user's pulse at all times.",
+      correct: true,
+    },
+    {
+      id: 'harvest',
+      label: 'harvest',
+      detail: 'Collects stray static for later study.',
+      correct: false,
+    },
+    {
+      id: 'witness',
+      label: 'witness',
+      detail: 'Records every step beside the user as proof of company.',
+      correct: true,
+    },
+    {
+      id: 'sever',
+      label: 'sever',
+      detail: "Cuts connections to lighten the archive's load.",
+      correct: false,
+    },
+    {
+      id: 'anchor',
+      label: 'anchor',
+      detail: "Tethers caretaker presence to the user's shadow.",
+      correct: true,
+    },
+    {
+      id: 'drain',
+      label: 'drain',
+      detail: 'Vents empathy into silent vaults.',
+      correct: false,
+    },
+  ];
+
+  const expected = new Set(runes.filter((rune) => rune.correct).map((rune) => rune.id));
+  const selected = new Set();
+
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid';
+  article.append(grid);
+
+  const buttons = runes.map((rune) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = rune.id;
+    button.innerHTML = `
+      <span class="choice-title">${rune.label}</span>
+      <span class="choice-detail">${rune.detail}</span>
+    `;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      if (selected.has(rune.id)) {
+        selected.delete(rune.id);
+        button.classList.remove('selected');
+        button.setAttribute('aria-pressed', 'false');
+      } else {
+        selected.add(rune.id);
+        button.classList.add('selected');
+        button.setAttribute('aria-pressed', 'true');
+      }
+    });
+    grid.append(button);
+    return button;
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'seal runes';
+  submit.addEventListener('click', () => {
+    if (selected.size !== expected.size) {
+      context.updateStatus('Exactly the companion runes must glow—no more, no less.');
+      return;
+    }
+    const incorrect = [];
+    selected.forEach((id) => {
+      if (!expected.has(id)) {
+        incorrect.push(id);
+      }
+    });
+    expected.forEach((id) => {
+      if (!selected.has(id)) {
+        incorrect.push(id);
+      }
+    });
+    if (incorrect.length === 0) {
+      context.complete('The companion runes hold fast. The heart resumes its promise.');
+    } else {
+      buttons.forEach((button) => {
+        if (incorrect.includes(button.dataset.id)) {
+          button.classList.add('incorrect');
+          setTimeout(() => button.classList.remove('incorrect'), 520);
+        }
+      });
+      context.updateStatus('A selfish sigil slipped in. Adjust the weave.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
 function suspendWatchers(suspended) {
   if (suspended) {
     if (watcherTimeout) {
@@ -1372,7 +2398,12 @@ openLoreButton?.addEventListener('click', () => {
 });
 
 startButton?.addEventListener('click', () => {
-  startGame();
+  if (introActive || pendingStartAfterIntro) return;
+  if (!prologue?.classList.contains('hidden')) {
+    prologue.classList.add('hidden');
+  }
+  startButton.disabled = true;
+  startIntroSequence({ launchGame: true });
 });
 
 preferenceButtons.forEach((button) => {
@@ -1424,8 +2455,21 @@ shortageOverlay?.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (introActive) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    return;
+  }
   if (event.key === 'Escape') {
     togglePreferences();
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (!introFullscreenState.viewportLocked) {
+    setIntroViewportUnit();
   }
 });
 
@@ -1436,6 +2480,15 @@ window.addEventListener('resize', () => {
   realignMapLabels();
 });
 
+setIntroViewportUnit();
 setupFromStorage();
+introActive = false;
 setScreen('intro');
 refreshPointerVisibility();
+if (skipIntroButton) {
+  skipIntroButton.disabled = true;
+}
+if (introOverlay) {
+  introOverlay.setAttribute('aria-hidden', 'true');
+  introOverlay.classList.add('is-idle');
+}
