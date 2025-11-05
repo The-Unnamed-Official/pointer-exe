@@ -322,25 +322,13 @@ body.intro-active {
     opacity: 1;
   }
   5% {
-    transform: rotateX(30deg) translate3d(
-      0,
-      calc(var(--intro-vh, 1vh) * 240),
-      0
-    );
+    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * 240), 0);
   }
   6% {
-    transform: rotateX(30deg) translate3d(
-      0,
-      calc(var(--intro-vh, 1vh) * 230),
-      0
-    );
+    transform: rotateX(30deg) translate3d(0, 230vh, 0);
   }
   50% {
-    transform: rotateX(30deg) translate3d(
-      0,
-      calc(var(--intro-vh, 1vh) * 50),
-      0
-    );
+    transform: rotateX(30deg) translate3d(0, 50vh, 0);
   }
   100% {
     transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * -157), 0);
