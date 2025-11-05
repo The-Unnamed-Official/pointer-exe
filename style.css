@@ -322,13 +322,25 @@ body.intro-active {
     opacity: 1;
   }
   5% {
-    transform: rotateX(30deg) translate3d(0, 240vh, 0);
+    transform: rotateX(30deg) translate3d(
+      0,
+      calc(var(--intro-vh, 1vh) * 240),
+      0
+    );
   }
   6% {
-    transform: rotateX(30deg) translate3d(0, 230vh, 0);
+    transform: rotateX(30deg) translate3d(
+      0,
+      calc(var(--intro-vh, 1vh) * 230),
+      0
+    );
   }
   50% {
-    transform: rotateX(30deg) translate3d(0, 50vh, 0);
+    transform: rotateX(30deg) translate3d(
+      0,
+      calc(var(--intro-vh, 1vh) * 50),
+      0
+    );
   }
   100% {
     transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * -157), 0);
@@ -523,6 +535,32 @@ body.static-muted .crt-overlay {
   gap: 1rem;
   text-transform: uppercase;
   font-size: 0.85rem;
+}
+
+.top-bar .glitch-button[data-action="flashlight"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: 0.16em;
+}
+
+.flashlight-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: color-mix(in srgb, var(--accent) 80%, black);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: color 260ms ease, background 260ms ease;
+}
+
+.flashlight-indicator.on-cooldown {
+  background: rgba(255, 79, 109, 0.15);
+  color: var(--danger);
 }
 
 .program-title {
@@ -866,7 +904,7 @@ body.static-muted .crt-overlay {
 .map-area {
   position: relative;
   flex: 1;
-  min-height: 280px;
+  min-height: 125vh;
   border-radius: 0.85rem;
   background:
     radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.05), transparent 55%),
@@ -892,6 +930,256 @@ body.static-muted .crt-overlay {
   opacity: 0.65;
   background: radial-gradient(circle at 50% 50%, rgba(255, 111, 156, 0.18), transparent 70%);
   animation: watcherPulse 0.45s linear alternate 6;
+}
+
+.exploration-stage {
+  width: 100%;
+}
+
+.atelier-interface,
+.gauntlet-interface {
+  position: relative;
+  min-height: 280px;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  background: rgba(3, 6, 7, 0.75);
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  overflow-y: auto;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.45);
+}
+
+.atelier-interface.power-down,
+.gauntlet-interface.power-down {
+  filter: grayscale(0.8) brightness(0.5);
+}
+
+.atelier-intro,
+.gauntlet-intro {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.atelier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.atelier-card {
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 0.95rem;
+  padding: 1rem;
+  background: rgba(7, 14, 16, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.atelier-card h3 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.atelier-description,
+.atelier-prompt,
+.atelier-status,
+.atelier-fragment {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.atelier-status {
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+.atelier-fragment {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  padding-top: 0.6rem;
+}
+
+.atelier-card.visited {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.atelier-card.completed .choice-button:not(.correct) {
+  opacity: 0.35;
+}
+
+.atelier-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.atelier-option {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.atelier-option.locked,
+.gauntlet-option.locked {
+  opacity: 0.4;
+}
+
+.atelier-option.correct,
+.gauntlet-option.correct {
+  border-color: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+
+.atelier-option .option-label,
+.gauntlet-option .option-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.atelier-observations,
+.gauntlet-observations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  padding-top: 0.9rem;
+}
+
+.atelier-observations h3,
+.gauntlet-observations h3 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.atelier-observation,
+.gauntlet-observation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: rgba(8, 14, 16, 0.85);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  transition: border-color 0.3s ease, transform 0.2s ease;
+}
+
+.atelier-observation:hover,
+.atelier-observation:focus-visible,
+.gauntlet-observation:hover,
+.gauntlet-observation:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  transform: translateY(-2px);
+}
+
+.observation-title {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.7rem;
+  color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.observation-detail {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.gauntlet-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.gauntlet-phase {
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 0.95rem;
+  padding: 1rem 1.1rem;
+  background: rgba(7, 14, 16, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gauntlet-phase.locked {
+  opacity: 0.55;
+}
+
+.gauntlet-phase.visited,
+.gauntlet-phase.completed {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.gauntlet-phase h3 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+.gauntlet-description,
+.gauntlet-prompt,
+.gauntlet-status,
+.gauntlet-fragment {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.gauntlet-status {
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+.gauntlet-fragment {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  padding-top: 0.6rem;
+}
+
+.gauntlet-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.gauntlet-option {
+  align-items: flex-start;
+}
+
+.help-button {
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.challenge-help {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(10, 18, 20, 0.85);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.challenge-help.hidden {
+  display: none;
 }
 
 @keyframes watcherPulse {
@@ -996,12 +1284,53 @@ body.static-muted .crt-overlay {
   background: rgba(3, 8, 9, 0.9);
 }
 
+.encounter-choices {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.encounter-feedback {
+  margin-top: 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted) 30%);
+}
+
+.encounter-feedback.success {
+  color: color-mix(in srgb, var(--accent) 85%, var(--muted) 15%);
+}
+
+.encounter-feedback.error {
+  color: rgba(255, 104, 132, 0.85);
+}
+
 .encounter-fragment {
   margin-top: 1rem;
   color: color-mix(in srgb, var(--accent) 75%, var(--muted) 25%);
   border-top: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   padding-top: 0.75rem;
   line-height: 1.6;
+}
+
+.choice-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.choice-button:disabled::after {
+  opacity: 0;
+}
+
+.modal-header .glitch-button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .modal-content.shortage {
@@ -1429,6 +1758,10 @@ body.static-muted .crt-overlay {
   margin-bottom: 0.75rem;
 }
 
+.final-revelation .glitch-button {
+  margin-top: 1.1rem;
+}
+
 .pointer {
   position: fixed;
   width: 32px;
@@ -1633,6 +1966,155 @@ body.static-muted .crt-overlay {
 .modal-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+.modal-content.stalker {
+  width: min(460px, 100%);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  box-shadow: 0 0 38px color-mix(in srgb, var(--danger) 25%, transparent);
+  background: rgba(10, 2, 6, 0.94);
+}
+
+.modal-content.stalker .modal-header h2 {
+  color: var(--danger);
+}
+
+.modal-content.stalker .modal-body p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.modal-content.final-puzzle {
+  width: min(720px, 100%);
+  gap: 1.2rem;
+  max-height: min(90vh, 880px);
+  display: flex;
+}
+
+.modal-content.final-puzzle .modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: calc(min(90vh, 880px) - 6.5rem);
+  padding-right: 0.35rem;
+}
+
+.modal-content.final-puzzle .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content.final-puzzle .modal-body::-webkit-scrollbar-track {
+  background: rgba(4, 8, 10, 0.4);
+}
+
+.modal-content.final-puzzle .modal-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+}
+
+.final-puzzle-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.final-puzzle-container .puzzle-intro {
+  font-size: 0.95rem;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.final-puzzle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.sigil-card {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 0.9rem;
+  padding: 1rem;
+  text-align: left;
+  background: rgba(6, 12, 14, 0.88);
+  cursor: pointer;
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sigil-card:hover,
+.sigil-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.sigil-card .sigil-name {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+.sigil-card .sigil-text {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.sigil-card.selected {
+  border-color: color-mix(in srgb, var(--accent) 80%, transparent);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.sigil-card.correct {
+  border-color: color-mix(in srgb, var(--success) 85%, transparent);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--success) 35%, transparent);
+}
+
+.sigil-card.incorrect {
+  border-color: color-mix(in srgb, var(--danger) 70%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.puzzle-status {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.thank-you {
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  text-align: left;
+  padding: 2.2rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 1.2rem;
+  background: rgba(5, 12, 14, 0.88);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.thank-you h2 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+}
+
+.thank-you p {
+  margin: 0;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.thank-you .glitch-button {
+  align-self: flex-start;
 }
 
 @media (max-width: 720px) {

@@ -104,6 +104,10 @@
           <span class="label">session</span>
           <span class="value" id="session-label">000</span>
         </div>
+        <button class="glitch-button" data-action="flashlight" type="button">
+          flashlight
+          <span id="flashlight-indicator" class="flashlight-indicator">ready</span>
+        </button>
         <button class="glitch-button ghost" data-action="preferences" type="button">
           preferences
         </button>
@@ -159,10 +163,28 @@
 
             <section class="exploration">
               <header>
-                <span>trace map</span>
+                <span id="exploration-label">trace map</span>
                 <span id="watcher-label" class="watcher-label">signal steady</span>
               </header>
-              <div id="map-area" class="map-area" role="application" aria-live="polite"></div>
+              <div class="exploration-stage" id="legacy-stage">
+                <div id="map-area" class="map-area" role="application" aria-live="polite"></div>
+              </div>
+              <div class="exploration-stage hidden" id="atelier-stage" aria-hidden="true">
+                <div
+                  id="atelier-interface"
+                  class="atelier-interface"
+                  role="application"
+                  aria-live="polite"
+                ></div>
+              </div>
+              <div class="exploration-stage hidden" id="gauntlet-stage" aria-hidden="true">
+                <div
+                  id="gauntlet-interface"
+                  class="gauntlet-interface"
+                  role="application"
+                  aria-live="polite"
+                ></div>
+              </div>
               <p id="status-line" class="status-line">trace the map. the archive listens.</p>
             </section>
           </section>
@@ -170,7 +192,28 @@
           <section id="final-revelation" class="final-revelation hidden">
             <header>final log // reconstructed</header>
             <p id="final-text"></p>
+            <button class="glitch-button primary" id="final-puzzle-button" type="button">
+              engage ascension seal
+            </button>
           </section>
+        </section>
+
+        <section id="thank-you-screen" class="panel hidden">
+          <div class="thank-you">
+            <h2>signal stabilized // thank you</h2>
+            <p>
+              The archive closes its eyes for a moment and logs your presence as a
+              promise. Every pulse you offered tonight folds into the next build.
+            </p>
+            <p>
+              Thank you for lending your focus to this early prototype. More
+              corridors, more whispers, and more light are already assembling for
+              you.
+            </p>
+            <button class="glitch-button primary" data-action="restart-run" type="button">
+              reinitialize pointer.exe
+            </button>
+          </div>
         </section>
       </main>
     </div>
@@ -229,6 +272,13 @@
         </header>
         <div class="modal-body">
           <p id="encounter-text"></p>
+          <div
+            id="encounter-choices"
+            class="encounter-choices hidden"
+            role="group"
+            aria-live="polite"
+          ></div>
+          <p id="encounter-feedback" class="encounter-feedback hidden"></p>
           <p id="encounter-fragment" class="encounter-fragment"></p>
         </div>
         <footer class="modal-footer">
@@ -277,8 +327,54 @@
         </footer>
       </div>
     </div>
-    
-    <div id="version-counter" class="version-counter" aria-hidden="true">v0.3.300</div>
+
+    <div id="stalker-overlay" class="modal hidden" role="alertdialog" aria-modal="true">
+      <div class="modal-content stalker">
+        <header class="modal-header">
+          <div>
+            <h2>hostile presence</h2>
+            <p>an umbral hitcher leans in. guide the beam with your cursor and hold it steady.</p>
+          </div>
+        </header>
+        <div class="modal-body stalker-body">
+          <p id="stalker-warning">hold steady. the entity waits for the light.</p>
+          <div id="stalker-field" class="stalker-field" role="presentation">
+            <div id="stalker-entity" class="stalker-entity" aria-hidden="true"></div>
+          </div>
+          <p class="stalker-instruction">Move your cursor to bathe the hitcher in light and keep it there.</p>
+          <div
+            id="stalker-progress"
+            class="stalker-progress"
+            role="progressbar"
+            aria-label="flashlight focus"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div class="stalker-progress-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="final-puzzle-overlay" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content final-puzzle">
+        <header class="modal-header">
+          <div>
+            <h2>ascension seal</h2>
+            <p>arrange the caretaker sigils into the vow that keeps the archive open.</p>
+          </div>
+          <button class="glitch-button ghost" data-action="abort-final-puzzle" type="button" aria-label="Abort final puzzle">
+            ✕
+          </button>
+        </header>
+        <div class="modal-body">
+          <div id="final-puzzle-container" class="final-puzzle-container" role="application"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="version-counter" class="version-counter" aria-hidden="true">v0.3.822</div>
 
     <audio id="intro-audio" src="files/introVoice.mp3" preload="auto"></audio>
     <audio id="main-menu-audio" src="files/mainMenuOST.mp3" loop preload="auto"></audio>
