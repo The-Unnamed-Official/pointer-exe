@@ -104,6 +104,10 @@
           <span class="label">session</span>
           <span class="value" id="session-label">000</span>
         </div>
+        <button class="glitch-button" data-action="flashlight" type="button">
+          flashlight
+          <span id="flashlight-indicator" class="flashlight-indicator">ready</span>
+        </button>
         <button class="glitch-button ghost" data-action="preferences" type="button">
           preferences
         </button>
@@ -170,7 +174,28 @@
           <section id="final-revelation" class="final-revelation hidden">
             <header>final log // reconstructed</header>
             <p id="final-text"></p>
+            <button class="glitch-button primary" id="final-puzzle-button" type="button">
+              engage ascension seal
+            </button>
           </section>
+        </section>
+
+        <section id="thank-you-screen" class="panel hidden">
+          <div class="thank-you">
+            <h2>signal stabilized // thank you</h2>
+            <p>
+              The archive closes its eyes for a moment and logs your presence as a
+              promise. Every pulse you offered tonight folds into the next build.
+            </p>
+            <p>
+              Thank you for lending your focus to this early prototype. More
+              corridors, more whispers, and more light are already assembling for
+              you.
+            </p>
+            <button class="glitch-button primary" data-action="restart-run" type="button">
+              reinitialize pointer.exe
+            </button>
+          </div>
         </section>
       </main>
     </div>
@@ -277,7 +302,43 @@
         </footer>
       </div>
     </div>
-    
+
+    <div id="stalker-overlay" class="modal hidden" role="alertdialog" aria-modal="true">
+      <div class="modal-content stalker">
+        <header class="modal-header">
+          <div>
+            <h2>hostile presence</h2>
+            <p>an umbral hitcher leans in. flash the beam before it binds you.</p>
+          </div>
+        </header>
+        <div class="modal-body">
+          <p id="stalker-warning">hold steady. the entity waits for the light.</p>
+        </div>
+        <footer class="modal-footer">
+          <button class="glitch-button primary" data-action="flash-now" type="button">
+            fire flashlight
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <div id="final-puzzle-overlay" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content final-puzzle">
+        <header class="modal-header">
+          <div>
+            <h2>ascension seal</h2>
+            <p>arrange the caretaker sigils into the vow that keeps the archive open.</p>
+          </div>
+          <button class="glitch-button ghost" data-action="abort-final-puzzle" type="button" aria-label="Abort final puzzle">
+            ✕
+          </button>
+        </header>
+        <div class="modal-body">
+          <div id="final-puzzle-container" class="final-puzzle-container" role="application"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="version-counter" class="version-counter" aria-hidden="true">v0.3.300</div>
 
     <audio id="intro-audio" src="files/introVoice.mp3" preload="auto"></audio>

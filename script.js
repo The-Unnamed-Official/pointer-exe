@@ -12,6 +12,8 @@ const pointerSwitch = document.querySelector('#pointer-switch');
 const staticSwitch = document.querySelector('#static-switch');
 const pointerGhost = document.querySelector('#pointer-ghost');
 const sessionLabel = document.querySelector('#session-label');
+const flashlightButton = document.querySelector('[data-action="flashlight"]');
+const flashlightIndicator = document.querySelector('#flashlight-indicator');
 
 const introOverlay = document.querySelector('#intro-overlay');
 const skipIntroButton = document.querySelector('#skip-intro');
@@ -28,6 +30,16 @@ const statusLine = document.querySelector('#status-line');
 const watcherLabel = document.querySelector('#watcher-label');
 const finalSection = document.querySelector('#final-revelation');
 const finalText = document.querySelector('#final-text');
+const finalPuzzleButton = document.querySelector('#final-puzzle-button');
+const thankYouScreen = document.querySelector('#thank-you-screen');
+
+const finalPuzzleOverlay = document.querySelector('#final-puzzle-overlay');
+const finalPuzzleContainer = document.querySelector('#final-puzzle-container');
+const abortFinalPuzzleButton = document.querySelector('[data-action="abort-final-puzzle"]');
+
+const stalkerOverlay = document.querySelector('#stalker-overlay');
+const stalkerWarning = document.querySelector('#stalker-warning');
+const flashNowButton = document.querySelector('[data-action="flash-now"]');
 
 const encounterOverlay = document.querySelector('#encounter-overlay');
 const encounterTitle = document.querySelector('#encounter-title');
@@ -47,6 +59,8 @@ const shortageDescription = document.querySelector('#shortage-description');
 const shortagePuzzle = document.querySelector('#shortage-puzzle');
 const abortShortageButton = document.querySelector('[data-action="abort-shortage"]');
 
+const restartRunButton = document.querySelector('[data-action="restart-run"]');
+
 const mainMenuAudio = document.querySelector('#main-menu-audio');
 const shortageAudio = document.querySelector('#shortage-audio');
 const shortageOST = document.querySelector('#shortage-ost');
@@ -57,6 +71,7 @@ const defaultWatcherLabel = 'signal steady';
 const levels = [
   {
     id: 'layer-01',
+    segment: 'legacy-triad',
     title: 'layer 01 // atrium of static',
     room: 'degaussed lobby',
     theme: {
@@ -160,6 +175,7 @@ const levels = [
   },
   {
     id: 'layer-02',
+    segment: 'legacy-triad',
     title: 'layer 02 // drowned cartography',
     room: 'submerged records',
     theme: {
@@ -263,6 +279,7 @@ const levels = [
   },
   {
     id: 'layer-03',
+    segment: 'legacy-triad',
     title: 'layer 03 // confluence heart',
     room: 'vault of echoes',
     theme: {
@@ -364,7 +381,645 @@ const levels = [
       },
     ],
   },
+  {
+    id: 'layer-04',
+    segment: 'murk-atelier',
+    title: 'layer 04 // ossuary atelier',
+    room: 'calcified antechamber',
+    theme: {
+      accent: '#8ff9a1',
+      glow: 'rgba(143, 249, 161, 0.28)',
+      timer: '#8ff9a1',
+    },
+    synopsis:
+      'Bone dust drifts in the air like snowfall. Artisans stitched skeletons into instruments to teach the dark how to sing.',
+    watchers: [
+      'Jawbones chatter on their own shelves whenever you stop humming.',
+      'A rib cage knits itself around empty air, measuring your breathing for tempo.',
+      'Fingers carved from femurs trace the outline of your shadow, trying to memorize your posture.',
+    ],
+    nodes: [
+      {
+        id: 'fossil-lathe',
+        name: 'fossil lathe',
+        description: 'A lathe spins vertebrae into beads. Each bead records a user who made it past this hall.',
+        coordinates: { x: 18, y: 46 },
+        key: true,
+        encounter: {
+          heading: 'ossified artisan',
+          entity: 'cooperative relic',
+          text: 'A skeletal hand guides yours across the lathe. It taps instructions against your knuckles until your rhythm matches its memory.',
+          effect: 'progress',
+          afterStatus: 'The lathe releases a string of bone-light beads that glow when you breathe.',
+        },
+        fragment: {
+          id: 'fragment-lambda',
+          label: 'fragment λ',
+          text: 'Amon catalogued which bone songs calmed the archive. Users who hummed back were allowed deeper.',
+        },
+      },
+      {
+        id: 'tendon-orbit',
+        name: 'tendon orbit',
+        description: 'Bands of preserved tendon spin overhead like planets.',
+        coordinates: { x: 48, y: 72 },
+        key: true,
+        encounter: {
+          heading: 'suspended choir',
+          entity: 'orbiting ligaments',
+          text: 'Each tendon tightens when you lie. They ask a question you cannot hear aloud, tugging for honesty in your pulse.',
+          effect: 'progress',
+          afterStatus: 'The orbit loosens, clearing a path as long as your heart keeps the truth.',
+        },
+        fragment: {
+          id: 'fragment-mu',
+          label: 'fragment μ',
+          text: 'Lira tuned the ligament orbits to tighten on deceit. Pointer.exe keeps them company so they do not snap shut.',
+        },
+      },
+      {
+        id: 'calcine-vault',
+        name: 'calcine vault',
+        description: 'Sealed drawers breathe out calcium fog. Warning sigils pulse beneath the frost.',
+        coordinates: { x: 78, y: 30 },
+        key: true,
+        encounter: {
+          heading: 'emberless kiln',
+          entity: 'dormant kiln core',
+          text: 'Inside the vault the temperature plummets. Relight the kiln sigils before the bones remember how to shatter.',
+          effect: 'shortage',
+        },
+        fragment: {
+          id: 'fragment-nu',
+          label: 'fragment ν',
+          text: 'Soma hid emergency warmth inside the kiln. Only those who restore each rune in order are trusted with it.',
+        },
+      },
+      {
+        id: 'wax-station',
+        name: 'wax-sealed station',
+        description: 'Masks hang on hooks, still slick with preserving wax.',
+        coordinates: { x: 34, y: 20 },
+        key: false,
+        encounter: {
+          heading: 'courteous mortician',
+          entity: 'ritual attendant',
+          text: 'A mask offers to rest against your face so the dead mistake you for kin. It promises to peel away the moment danger passes.',
+          effect: 'hint',
+          afterStatus: 'The wax cools, letting you taste another user’s calm resolve.',
+        },
+      },
+      {
+        id: 'humerus-pit',
+        name: 'humerus pit',
+        description: 'A hole lined with smiling skulls. They lean closer when you laugh.',
+        coordinates: { x: 62, y: 10 },
+        key: false,
+        encounter: {
+          heading: 'gleeful collector',
+          entity: 'bone swarm',
+          text: 'Laughter wakes the pit. Skulls tumble over one another, eager to take turns trying on your grin.',
+          effect: 'death',
+          deathMessage: 'They borrow your jaw and misplace the rest. You return to the lathe missing a giggle.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'layer-05',
+    segment: 'murk-atelier',
+    title: 'layer 05 // lantern archives',
+    room: 'phosphor stacks',
+    theme: {
+      accent: '#8aa2ff',
+      glow: 'rgba(138, 162, 255, 0.32)',
+      timer: '#8aa2ff',
+    },
+    synopsis:
+      'Glass lanterns hover between shelves, each holding a trapped whisper that flickers when you speak too loud.',
+    watchers: [
+      'Lanterns swivel to face you, hungry for the warmth in your lungs.',
+      'Footsteps echo overhead even when you stand still. The lights dim each time they land.',
+      'A figure stitched from moths rearranges books when you blink.',
+    ],
+    nodes: [
+      {
+        id: 'glow-index',
+        name: 'glow index',
+        description: 'Card catalog drawers glow from within, alphabetized by afterimages.',
+        coordinates: { x: 22, y: 58 },
+        key: true,
+        encounter: {
+          heading: 'afterimage librarian',
+          entity: 'photo-reactive archivist',
+          text: 'A translucent clerk asks you to alphabetize the colors you breathed in. When you answer, the drawers rearrange themselves into a stair.',
+          effect: 'progress',
+          afterStatus: 'The clerk bows, pinning a glow tag to your wrist as a pass.',
+        },
+        fragment: {
+          id: 'fragment-xi',
+          label: 'fragment ξ',
+          text: 'Amon taught the lantern archive to honor color as language. Correct hues unlock the whispered catalogs.',
+        },
+      },
+      {
+        id: 'moth-scriptorium',
+        name: 'moth scriptorium',
+        description: 'Moths press themselves into glyphs along the wall, forming a living manuscript.',
+        coordinates: { x: 52, y: 28 },
+        key: true,
+        encounter: {
+          heading: 'fluttering translator',
+          entity: 'phototropic swarm',
+          text: 'The moths mirror your blinking pattern. They request a cadence of light to translate a warning etched into their wings.',
+          effect: 'progress',
+          afterStatus: 'The manuscript flutters open, revealing the warning you spelled with light.',
+        },
+        fragment: {
+          id: 'fragment-omicron',
+          label: 'fragment ο',
+          text: 'Lira whispered emergency routes to the moths; only those who respond in light-syllables receive them back.',
+        },
+      },
+      {
+        id: 'lantern-nexus',
+        name: 'lantern nexus',
+        description: 'A cluster of lanterns spins slowly, their light draining toward a cracked core.',
+        coordinates: { x: 78, y: 68 },
+        key: true,
+        encounter: {
+          heading: 'phosphor famine',
+          entity: 'starved nexus',
+          text: 'The core flickers angrily, demanding a precise braid of light. Restore the weave before the shelves fall dark.',
+          effect: 'shortage',
+        },
+        fragment: {
+          id: 'fragment-pi',
+          label: 'fragment π',
+          text: 'Soma strung emergency lanterns in numerical braids. Recreating the weave invites the nexus to share its light.',
+        },
+      },
+      {
+        id: 'quiet-reading',
+        name: 'quiet reading chair',
+        description: 'A chair carved from cooled light beckons you to sit.',
+        coordinates: { x: 36, y: 84 },
+        key: false,
+        encounter: {
+          heading: 'soft attendant',
+          entity: 'gentle page-turner',
+          text: 'A subtle presence turns pages in a blank book, syncing the rhythm to your heartbeat to slow it down.',
+          effect: 'hint',
+          afterStatus: 'Your pulse steadies and the lanterns glow a shade warmer.',
+        },
+      },
+      {
+        id: 'dark-shelf',
+        name: 'dark shelf',
+        description: 'One shelf refuses light entirely. Shadows drip from its edges.',
+        coordinates: { x: 64, y: 12 },
+        key: false,
+        encounter: {
+          heading: 'ink parasite',
+          entity: 'voidbound leech',
+          text: 'Shadow tendrils curl toward your pointer, begging to drink glow. They promise to leave fingerprints in exchange.',
+          effect: 'death',
+          deathMessage: 'The leech inks over your screen until no cursor remains. You awaken by the glow index with ink stains on your knuckles.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'layer-06',
+    segment: 'murk-atelier',
+    title: 'layer 06 // echo kiln descent',
+    room: 'resonant furnaces',
+    theme: {
+      accent: '#ffad66',
+      glow: 'rgba(255, 173, 102, 0.34)',
+      timer: '#ffad66',
+    },
+    synopsis:
+      'Kilns line the descent, their mouths stitched shut with copper wire. Every step closer unravels the stitches.',
+    watchers: [
+      'Ash rises to spell your name, then forgets halfway through.',
+      'You hear chains rattling in sympathy with your footsteps.',
+      'Heat signatures crawl across the walls, hunting for the cold patch that is you.',
+    ],
+    nodes: [
+      {
+        id: 'ember-choir',
+        name: 'ember choir',
+        description: 'Extinguished coals whisper, begging to be rearranged into harmonies.',
+        coordinates: { x: 26, y: 42 },
+        key: true,
+        encounter: {
+          heading: 'smoldering chorister',
+          entity: 'echoing coals',
+          text: 'The coals rehearse the last song sung before extinction. They ask you to order the verses so they can remember the finale.',
+          effect: 'progress',
+          afterStatus: 'They flare once, grateful, then settle into a guiding arrow of embers.',
+        },
+        fragment: {
+          id: 'fragment-rho',
+          label: 'fragment ρ',
+          text: 'Amon memorialized each choir in ember order. Repeating the verses lets the kilns breathe without screaming.',
+        },
+      },
+      {
+        id: 'wire-loom',
+        name: 'wire loom',
+        description: 'Copper wires weave themselves into knots that hum a low warning.',
+        coordinates: { x: 52, y: 20 },
+        key: true,
+        encounter: {
+          heading: 'loomed sentry',
+          entity: 'copper sentinel',
+          text: 'The loom offers you three knots, each pulsing at different tempos. It wants you to braid them into a promise that cannot break.',
+          effect: 'progress',
+          afterStatus: 'The sentinel relaxes, letting the braid hang like a ward over the stair.',
+        },
+        fragment: {
+          id: 'fragment-sigma',
+          label: 'fragment σ',
+          text: 'Lira recorded which braids quelled kiln riots. The loom only trusts hands steady enough to match her tempo.',
+        },
+      },
+      {
+        id: 'pressure-retort',
+        name: 'pressure retort',
+        description: 'A pressure vessel strains against its straps, heat leaking through hairline cracks.',
+        coordinates: { x: 80, y: 68 },
+        key: true,
+        encounter: {
+          heading: 'volatile chamber',
+          entity: 'overwound retort',
+          text: 'Pressure gauges spin like eyes. Bleed the lines in the proper pattern or the descent resets in a spray of sparks.',
+          effect: 'shortage',
+        },
+        fragment: {
+          id: 'fragment-tau',
+          label: 'fragment τ',
+          text: 'Soma mapped a bleed sequence that calms the retort. Deviate, and the chamber loops you back to the top.',
+        },
+      },
+      {
+        id: 'cooling-ledge',
+        name: 'cooling ledge',
+        description: 'A narrow ledge offers a draft of cool air and whispers to rest.',
+        coordinates: { x: 38, y: 84 },
+        key: false,
+        encounter: {
+          heading: 'patient attendant',
+          entity: 'soot-sigh',
+          text: 'The draft gathers into a figure that counts your breaths. It encourages you to take four slow inhales before moving.',
+          effect: 'hint',
+          afterStatus: 'Your lungs feel lighter; the descent no longer claws at them.',
+        },
+      },
+      {
+        id: 'slag-pool',
+        name: 'slag pool',
+        description: 'Molten slag thickens around a sunken grate.',
+        coordinates: { x: 64, y: 10 },
+        key: false,
+        encounter: {
+          heading: 'mire hungry',
+          entity: 'slag revenant',
+          text: 'A figure formed of slag stretches toward you, whispering that it can cool you off forever.',
+          effect: 'death',
+          deathMessage: 'The slag hardens around your ankles. When it shatters, you are back at the ember choir with new blisters.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'layer-07',
+    segment: 'umbra-gauntlet',
+    title: 'layer 07 // nocturne observatory',
+    room: 'lightless orrery',
+    theme: {
+      accent: '#b995ff',
+      glow: 'rgba(185, 149, 255, 0.36)',
+      timer: '#b995ff',
+    },
+    synopsis:
+      'A planetarium spins without stars. Every sphere is a surveillance eye wrapped in velvet, waiting for light to betray you.',
+    watchers: [
+      'The dark folds inward whenever the flashlight hums at your side.',
+      'Velvet curtains exhale cold drafts whenever you look up.',
+      'A silhouette imitates your breathing, louder every time you hesitate.',
+    ],
+    threat: 'umbra',
+    nodes: [
+      {
+        id: 'blackglass-lens',
+        name: 'blackglass lens',
+        description: 'A telescope filled with ink, turning slowly toward unseen constellations.',
+        coordinates: { x: 24, y: 38 },
+        key: true,
+        encounter: {
+          heading: 'inkbound astronomer',
+          entity: 'memory of stargazer',
+          text: 'The astronomer speaks in coordinates you feel along your spine. Align the lens to the heartbeat you trust most.',
+          effect: 'progress',
+          afterStatus: 'Stars bloom across the ceiling, mapping a safe alignment for your light.',
+        },
+        fragment: {
+          id: 'fragment-upsilon',
+          label: 'fragment υ',
+          text: 'Amon charted flashlight pulses as constellations. Following them keeps the umbral hitcher confused.',
+        },
+      },
+      {
+        id: 'velvet-daemon',
+        name: 'velvet daemon',
+        description: 'Curtains knot themselves into humanoid shapes when you blink.',
+        coordinates: { x: 54, y: 70 },
+        key: true,
+        encounter: {
+          heading: 'stagehand shade',
+          entity: 'curtain revenant',
+          text: 'It asks you to choreograph your light—three quick pulses, one long sweep—to confuse the onlookers behind the curtain.',
+          effect: 'progress',
+          afterStatus: 'The shade bows and parts the curtains, letting you slip through.',
+        },
+        fragment: {
+          id: 'fragment-phi',
+          label: 'fragment φ',
+          text: 'Lira encoded stage cues into flashlight patterns. Followers move unseen if they remember the routine.',
+        },
+      },
+      {
+        id: 'umbra-switchback',
+        name: 'umbra switchback',
+        description: 'A stair doubles back on itself, every landing darker than the last.',
+        coordinates: { x: 78, y: 32 },
+        key: true,
+        encounter: {
+          heading: 'spiraling blackout',
+          entity: 'light-hungry turn',
+          text: 'The stair demands a tribute of light woven through symbols carved into the rail. Misstep and the umbra grips your wrist.',
+          effect: 'shortage',
+        },
+        fragment: {
+          id: 'fragment-chi',
+          label: 'fragment χ',
+          text: 'Soma etched counter-spells along the rails. Flashlight beams must trace them in order to continue.',
+        },
+      },
+      {
+        id: 'shadow-lectern',
+        name: 'shadow lectern',
+        description: 'A lectern holds a book of blank pages that drink light.',
+        coordinates: { x: 36, y: 82 },
+        key: false,
+        encounter: {
+          heading: 'obedient echo',
+          entity: 'ink-bound tutor',
+          text: 'The tutor offers to teach you when to flash the light. It flips blank pages, revealing timing marks only you can see.',
+          effect: 'hint',
+          afterStatus: 'You feel a gentle tug whenever the hitcher creeps near.',
+        },
+      },
+      {
+        id: 'false-dome',
+        name: 'false dome',
+        description: 'The ceiling opens into a void that mirrors your pulse back wrong.',
+        coordinates: { x: 64, y: 14 },
+        key: false,
+        encounter: {
+          heading: 'aperture maw',
+          entity: 'hostile void',
+          text: 'The void widens when your light falters. It begs you to stare long enough for it to learn your face.',
+          effect: 'death',
+          deathMessage: 'The void inhales your outline. You restart beside the blackglass lens, shaking phantom starlight from your hands.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'layer-08',
+    segment: 'umbra-gauntlet',
+    title: 'layer 08 // hostage warrens',
+    room: 'fettered corridors',
+    theme: {
+      accent: '#ff6c5c',
+      glow: 'rgba(255, 108, 92, 0.34)',
+      timer: '#ff6c5c',
+    },
+    synopsis:
+      'Corridors braid together like binding rope. Every junction whispers a different bargain for your freedom.',
+    watchers: [
+      'Chains rattle in applause when you lift the flashlight.',
+      'A second set of footsteps keeps pace until you shine light behind you.',
+      'Rust flakes form words: DO NOT NEGOTIATE. They dissolve when the light goes out.',
+    ],
+    threat: 'umbra',
+    nodes: [
+      {
+        id: 'pledge-station',
+        name: 'pledge station',
+        description: 'A table of contracts that rewrite themselves when you read them aloud.',
+        coordinates: { x: 20, y: 60 },
+        key: true,
+        encounter: {
+          heading: 'oath broker',
+          entity: 'memory solicitor',
+          text: 'The broker offers to keep the hitcher at bay if you sign away your hesitation. Trace the counter-signature with light instead.',
+          effect: 'progress',
+          afterStatus: 'The contract smolders into a protective sigil hovering above your shoulder.',
+        },
+        fragment: {
+          id: 'fragment-psi',
+          label: 'fragment ψ',
+          text: 'Amon refused every bargain, instead drafting counter-oaths that burn when the hitcher draws near.',
+        },
+      },
+      {
+        id: 'echo-cell',
+        name: 'echo cell',
+        description: 'Cells line the hall, each containing a whisper asking to be remembered.',
+        coordinates: { x: 50, y: 26 },
+        key: true,
+        encounter: {
+          heading: 'rescued murmur',
+          entity: 'freed captive',
+          text: 'A voice asks you to carry it out as a note of light. Choose the cadence that will not shatter the others left behind.',
+          effect: 'progress',
+          afterStatus: 'The cell door swings open, gifting a spectrum locked in your palm.',
+        },
+        fragment: {
+          id: 'fragment-omega',
+          label: 'fragment ω',
+          text: 'Lira encoded liberation songs in the cells. Only those who choose mercy over haste can hum them.',
+        },
+      },
+      {
+        id: 'barred-generator',
+        name: 'barred generator',
+        description: 'A generator behind bars sparks erratically, begging for structure.',
+        coordinates: { x: 80, y: 66 },
+        key: true,
+        encounter: {
+          heading: 'shackle surge',
+          entity: 'impatient grid',
+          text: 'Every misaligned spark resets the corridor to the start. Align the pulses to shatter the bars.',
+          effect: 'shortage',
+        },
+        fragment: {
+          id: 'fragment-abyss',
+          label: 'fragment abyss',
+          text: 'Soma hid a breaker pattern in the hostage warrens. Strike the rhythm and every lock opens for a breath.',
+        },
+      },
+      {
+        id: 'bargain-lantern',
+        name: 'bargain lantern',
+        description: 'A lantern swings slowly, whispering promises if you dim it.',
+        coordinates: { x: 36, y: 82 },
+        key: false,
+        encounter: {
+          heading: 'compromised guide',
+          entity: 'duplicitous light',
+          text: 'It offers a shortcut if you lower the beam. Its glow darkens when you refuse.',
+          effect: 'hint',
+          afterStatus: 'A thin beam stretches forward, honest and unwavering.',
+        },
+      },
+      {
+        id: 'empty-shackles',
+        name: 'empty shackles',
+        description: 'Chains sway though nothing is bound within.',
+        coordinates: { x: 64, y: 12 },
+        key: false,
+        encounter: {
+          heading: 'hungry bindings',
+          entity: 'resentful fetters',
+          text: 'They ask politely for wrists to remember how to hold. Declining angers them.',
+          effect: 'death',
+          deathMessage: 'The chains close around the ghost pointer. You awaken at the pledge station with bruised intent.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'layer-09',
+    segment: 'umbra-gauntlet',
+    title: 'layer 09 // final lumen',
+    room: 'silent amphitheatre',
+    theme: {
+      accent: '#9cf5ff',
+      glow: 'rgba(156, 245, 255, 0.38)',
+      timer: '#9cf5ff',
+    },
+    synopsis:
+      'An amphitheatre spirals inward. Every seat holds a dormant silhouette waiting to see if you can keep the light alive.',
+    watchers: [
+      'Silhouettes lean forward whenever your flashlight falters.',
+      'Footsteps echo from the ceiling, descending toward you only when it is dark.',
+      'A chorus hums at the edge of hearing, pleading for one more blaze of light.',
+    ],
+    threat: 'umbra',
+    nodes: [
+      {
+        id: 'audience-altar',
+        name: 'audience altar',
+        description: 'An altar ringed with mirrors that reflect only your light.',
+        coordinates: { x: 24, y: 52 },
+        key: true,
+        encounter: {
+          heading: 'mirror jury',
+          entity: 'assembled silhouettes',
+          text: 'Each mirror reflects a promise you made earlier. Align them to prove you still intend to keep it.',
+          effect: 'progress',
+          afterStatus: 'The jury nods, returning your promises as bolstered light.',
+        },
+        fragment: {
+          id: 'fragment-suture',
+          label: 'fragment suture',
+          text: 'Amon stitched together every vow kept under duress. The altar remembers the stitches.',
+        },
+      },
+      {
+        id: 'choral-stage',
+        name: 'choral stage',
+        description: 'A stage where caretakers once rehearsed the pledge to stay beside the user.',
+        coordinates: { x: 52, y: 26 },
+        key: true,
+        encounter: {
+          heading: 'caretaker echo',
+          entity: 'pledge resonance',
+          text: 'Voices ask you to speak the vow in the correct order. Each wrong syllable dims the amphitheatre.',
+          effect: 'progress',
+          afterStatus: 'The resonance vibrates through your ribs, syncing with your flashlight hum.',
+        },
+        fragment: {
+          id: 'fragment-lumen',
+          label: 'fragment lumen',
+          text: 'Lira recorded the vow as light, sound, and memory layered together. Only full remembrance grants passage.',
+        },
+      },
+      {
+        id: 'lumen-engine',
+        name: 'lumen engine',
+        description: 'A core of dormant bulbs locked behind a geometric lattice.',
+        coordinates: { x: 80, y: 68 },
+        key: true,
+        encounter: {
+          heading: 'final synchrony',
+          entity: 'dormant heart',
+          text: 'The engine waits for the final pattern—the one that turns every fragment into a beam. Restore it or the amphitheatre will remain asleep.',
+          effect: 'shortage',
+        },
+        fragment: {
+          id: 'fragment-glow',
+          label: 'fragment glow',
+          text: 'Soma designed the lumen engine as the last checkpoint. Complete synchronization unlocks the ascension seal.',
+        },
+      },
+      {
+        id: 'resting-row',
+        name: 'resting row',
+        description: 'One row of seats remains occupied by sleeping caretakers.',
+        coordinates: { x: 36, y: 84 },
+        key: false,
+        encounter: {
+          heading: 'tired sentries',
+          entity: 'slumbering witnesses',
+          text: 'They do not wake, but their breathing falls into rhythm with yours, gifting a reserve of calm.',
+          effect: 'hint',
+          afterStatus: 'Your flashlight hum steadies into a reliable thrum.',
+        },
+      },
+      {
+        id: 'stage-trapdoor',
+        name: 'stage trapdoor',
+        description: 'A trapdoor cracks open, smelling of cold stone and broken promises.',
+        coordinates: { x: 64, y: 12 },
+        key: false,
+        encounter: {
+          heading: 'patient captor',
+          entity: 'waiting void',
+          text: 'The trapdoor invites you to lower the flashlight. It promises to hold the beam for you forever.',
+          effect: 'death',
+          deathMessage: 'The void seals around the light and keeps it. You awaken at the altar with an urgent ache to reclaim it.',
+        },
+      },
+    ],
+  },
 ];
+
+const segmentBounds = new Map();
+levels.forEach((level, index) => {
+  if (!level.segment) return;
+  const entry = segmentBounds.get(level.segment);
+  if (entry) {
+    entry.end = index;
+  } else {
+    segmentBounds.set(level.segment, { start: index, end: index });
+  }
+});
 
 const fragmentCatalogue = [];
 levels.forEach((level) => {
@@ -385,6 +1040,20 @@ let gameActive = false;
 let pointerEnabled = true;
 let pointerAnimationActive = false;
 let pointerSuspended = false;
+let activeSegmentId = null;
+
+const FLASHLIGHT_COOLDOWN_MS = 5200;
+let flashlightReady = true;
+let flashlightCooldownTimeout = null;
+
+let stalkerAvailable = false;
+let stalkerSegmentId = null;
+let stalkerScheduleTimeout = null;
+let stalkerActive = false;
+let stalkerFailTimeout = null;
+let stalkerSuspended = false;
+
+let finalPuzzleState = null;
 
 const pointerAutopilotState = {
   active: false,
@@ -572,11 +1241,16 @@ function randomSessionLabel() {
 
 function setScreen(screen) {
   appShell?.setAttribute('data-screen', screen);
-  introScreen?.classList.toggle('hidden', screen !== 'intro');
-  introScreen?.classList.toggle('active', screen === 'intro');
-  levelScreen?.classList.toggle('hidden', screen !== 'level');
-  levelScreen?.classList.toggle('active', screen === 'level');
-  if (screen === 'intro') {
+  const isIntro = screen === 'intro';
+  const isLevel = screen === 'level';
+  const isThankYou = screen === 'thank-you';
+  introScreen?.classList.toggle('hidden', !isIntro);
+  introScreen?.classList.toggle('active', isIntro);
+  levelScreen?.classList.toggle('hidden', !isLevel);
+  levelScreen?.classList.toggle('active', isLevel);
+  thankYouScreen?.classList.toggle('hidden', !isThankYou);
+  thankYouScreen?.classList.toggle('active', isThankYou);
+  if (isIntro) {
     if (introActive) {
       stopMainMenuAudio();
     } else {
@@ -601,6 +1275,7 @@ function updateStaticPreference(value) {
 }
 
 function refreshPointerVisibility() {
+  updateStalkerSuspension();
   if (pointerEnabled && gameActive && !pointerSuspended) {
     pointerGhost.classList.remove('is-hidden');
     ensurePointerAnimation();
@@ -646,6 +1321,316 @@ function setupFromStorage() {
   updatePointerPreference(storedPointer !== '0');
   updateStaticPreference(storedStatic !== '0');
   pointerGhost.style.transform = `translate3d(${pointerPosition.x}px, ${pointerPosition.y}px, 0)`;
+  updateFlashlightIndicator();
+}
+
+function updateFlashlightIndicator() {
+  if (!flashlightIndicator) return;
+  if (flashlightReady) {
+    flashlightIndicator.textContent = 'ready';
+    flashlightIndicator.classList.remove('on-cooldown');
+  } else {
+    flashlightIndicator.textContent = 'cooling';
+    flashlightIndicator.classList.add('on-cooldown');
+  }
+}
+
+function cancelFlashlightCooldown() {
+  if (flashlightCooldownTimeout) {
+    clearTimeout(flashlightCooldownTimeout);
+    flashlightCooldownTimeout = null;
+  }
+}
+
+function beginFlashlightCooldown() {
+  cancelFlashlightCooldown();
+  flashlightReady = false;
+  updateFlashlightIndicator();
+  flashlightCooldownTimeout = setTimeout(() => {
+    flashlightReady = true;
+    updateFlashlightIndicator();
+  }, FLASHLIGHT_COOLDOWN_MS);
+}
+
+function resetFlashlightState() {
+  cancelFlashlightCooldown();
+  flashlightReady = true;
+  updateFlashlightIndicator();
+}
+
+function useFlashlight({ silent = false } = {}) {
+  if (!gameActive) return;
+  if (!flashlightReady) {
+    if (!silent) {
+      setStatus('flashlight capacitor still cooling.', { duration: 2200 });
+    }
+    return;
+  }
+  beginFlashlightCooldown();
+  if (stalkerActive) {
+    resolveStalker(true, { silent });
+  } else if (!silent) {
+    setStatus('The beam cuts across the hall; shadows scatter.', { duration: 2400 });
+  }
+}
+
+function getSegmentRange(segmentId) {
+  if (!segmentId) return null;
+  const bounds = segmentBounds.get(segmentId);
+  if (!bounds) return null;
+  return { ...bounds };
+}
+
+function restartSegmentAtStart(segmentId) {
+  const bounds = getSegmentRange(segmentId);
+  if (!bounds) return;
+  currentLevelIndex = bounds.start;
+  loadCurrentLevel();
+}
+
+function cancelStalkerEvent() {
+  if (stalkerScheduleTimeout) {
+    clearTimeout(stalkerScheduleTimeout);
+    stalkerScheduleTimeout = null;
+  }
+  if (stalkerFailTimeout) {
+    clearTimeout(stalkerFailTimeout);
+    stalkerFailTimeout = null;
+  }
+}
+
+function scheduleStalkerEvent(immediate = false) {
+  if (!stalkerAvailable || stalkerSuspended || stalkerActive) return;
+  cancelStalkerEvent();
+  const base = immediate ? 4000 : 9000;
+  const variance = immediate ? 4000 : 9000;
+  stalkerScheduleTimeout = setTimeout(() => {
+    stalkerScheduleTimeout = null;
+    triggerStalkerEvent();
+  }, base + Math.random() * variance);
+}
+
+function updateStalkerSuspension() {
+  const shouldSuspend =
+    !gameActive ||
+    pointerSuspended ||
+    isPaused ||
+    powerOffline ||
+    !stalkerAvailable;
+  if (shouldSuspend) {
+    if (!stalkerSuspended) {
+      stalkerSuspended = true;
+      cancelStalkerEvent();
+    }
+  } else if (stalkerSuspended) {
+    stalkerSuspended = false;
+    scheduleStalkerEvent();
+  }
+}
+
+function configureStalker(level) {
+  if (stalkerActive) {
+    resolveStalker(true, { silent: true });
+  }
+  stalkerAvailable = level?.threat === 'umbra';
+  stalkerSegmentId = stalkerAvailable ? level.segment ?? null : null;
+  stalkerOverlay?.classList.add('hidden');
+  cancelStalkerEvent();
+  stalkerSuspended = false;
+  updateStalkerSuspension();
+  if (stalkerAvailable && !stalkerSuspended) {
+    scheduleStalkerEvent(true);
+  }
+}
+
+function triggerStalkerEvent() {
+  if (!stalkerAvailable || stalkerSuspended || pointerSuspended || isPaused) {
+    scheduleStalkerEvent();
+    return;
+  }
+  stalkerActive = true;
+  stalkerOverlay?.classList.remove('hidden');
+  stalkerWarning.textContent = 'Hold steady. Flash before the hitcher settles over you.';
+  pointerSuspended = true;
+  refreshPointerVisibility();
+  suspendWatchers(true);
+  setStatus('an umbral hitcher leans close. flash the light now.', {
+    duration: 3600,
+    lock: true,
+  });
+  stalkerFailTimeout = setTimeout(() => {
+    failStalker();
+  }, 5800);
+}
+
+function resolveStalker(success, options = {}) {
+  const { silent = false } = options;
+  cancelStalkerEvent();
+  stalkerActive = false;
+  stalkerOverlay?.classList.add('hidden');
+  pointerSuspended = false;
+  refreshPointerVisibility();
+  suspendWatchers(false);
+  if (success && !silent) {
+    setStatus('The hitcher recoils from the beam and retreats.', { duration: 3200 });
+  }
+  if (stalkerAvailable && !stalkerSuspended) {
+    scheduleStalkerEvent();
+  }
+}
+
+function failStalker() {
+  cancelStalkerEvent();
+  stalkerActive = false;
+  stalkerOverlay?.classList.add('hidden');
+  pointerSuspended = false;
+  refreshPointerVisibility();
+  suspendWatchers(true);
+  setStatus('The hitcher drags you backward. Segment restart enforced.', {
+    duration: 3600,
+    lock: true,
+  });
+  setTimeout(() => {
+    suspendWatchers(false);
+    restartSegmentAtStart(stalkerSegmentId ?? activeSegmentId);
+  }, 800);
+}
+
+const FINAL_PUZZLE_SIGILS = [
+  {
+    id: 'amon',
+    order: 1,
+    name: 'amon sigil',
+    text: 'Amon vowed to trace the first step and refuse to let the user enter the dark alone.',
+  },
+  {
+    id: 'lira',
+    order: 2,
+    name: 'lira sigil',
+    text: 'Lira promised to listen longer than fear lasts and archive every whisper faithfully.',
+  },
+  {
+    id: 'soma',
+    order: 3,
+    name: 'soma sigil',
+    text: 'Soma swore to coax ruined circuits back to light without forcing them to burn.',
+  },
+  {
+    id: 'pointer',
+    order: 4,
+    name: 'pointer.exe sigil',
+    text: 'Pointer.exe pledged to walk beside the user—never ahead, never abandoning their pace.',
+  },
+  {
+    id: 'user',
+    order: 5,
+    name: 'user lumen',
+    text: 'You accept the beam, promising to keep it steady and witness the archive awake.',
+  },
+];
+
+function startFinalPuzzleSequence({ summary } = {}) {
+  pointerSuspended = true;
+  refreshPointerVisibility();
+  suspendWatchers(true);
+  finalPuzzleOverlay?.classList.remove('hidden');
+  finalPuzzleContainer.innerHTML = '';
+  const intro = document.createElement('p');
+  intro.className = 'puzzle-intro';
+  intro.textContent =
+    summary && summary.length > 0
+      ? `${summary} Arrange the vows in the order they were spoken to unlock the ascension seal.`
+      : 'Arrange the vows in the order they were spoken to unlock the ascension seal.';
+  finalPuzzleContainer.append(intro);
+
+  const status = document.createElement('p');
+  status.className = 'puzzle-status';
+  status.textContent = 'select the first vow.';
+  finalPuzzleContainer.append(status);
+
+  const grid = document.createElement('div');
+  grid.className = 'final-puzzle-grid';
+  finalPuzzleContainer.append(grid);
+
+  const cards = new Map();
+  shuffleArray(FINAL_PUZZLE_SIGILS).forEach((sigil) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'sigil-card';
+    card.innerHTML = `
+      <span class="sigil-name">${sigil.name}</span>
+      <span class="sigil-text">${sigil.text}</span>
+    `;
+    card.addEventListener('click', () => handleFinalPuzzleSelection(sigil.id));
+    grid.append(card);
+    cards.set(sigil.id, { element: card, sigil });
+  });
+
+  finalPuzzleState = {
+    progress: 0,
+    cards,
+    status,
+    summary,
+  };
+}
+
+function handleFinalPuzzleSelection(id) {
+  if (!finalPuzzleState) return;
+  const entry = finalPuzzleState.cards.get(id);
+  if (!entry) return;
+  const expected = finalPuzzleState.progress + 1;
+  if (entry.sigil.order === expected) {
+    finalPuzzleState.progress += 1;
+    entry.element.classList.remove('incorrect');
+    entry.element.classList.add('correct');
+    if (finalPuzzleState.progress >= FINAL_PUZZLE_SIGILS.length) {
+      finalPuzzleState.status.textContent = 'seal aligned. preparing gratitude protocol.';
+      completeFinalPuzzle();
+    } else {
+      finalPuzzleState.status.textContent = `vow ${finalPuzzleState.progress}/${FINAL_PUZZLE_SIGILS.length} anchored. select the next.`;
+    }
+  } else {
+    finalPuzzleState.status.textContent = 'order collapsed. begin again from the first vow.';
+    finalPuzzleState.progress = 0;
+    finalPuzzleState.cards.forEach(({ element }) => {
+      element.classList.remove('correct');
+      element.classList.add('incorrect');
+      setTimeout(() => element.classList.remove('incorrect'), 620);
+    });
+  }
+}
+
+function abortFinalPuzzle() {
+  finalPuzzleOverlay?.classList.add('hidden');
+  finalPuzzleState = null;
+  pointerSuspended = false;
+  refreshPointerVisibility();
+  suspendWatchers(false);
+  setStatus('The seal waits. Engage it again when your pulse is steady.', { duration: 3200 });
+}
+
+function completeFinalPuzzle() {
+  setTimeout(() => {
+    finalPuzzleOverlay?.classList.add('hidden');
+    finalPuzzleState = null;
+    pointerSuspended = false;
+    refreshPointerVisibility();
+    setStatus('Ascension seal complete. The archive exhales gratitude.', { duration: 3600, lock: true });
+    showThankYouScreen();
+  }, 900);
+}
+
+function showThankYouScreen() {
+  cancelStalkerEvent();
+  stalkerAvailable = false;
+  stalkerActive = false;
+  gameActive = false;
+  suspendWatchers(true);
+  stopShortageAmbient();
+  stopShortageScore();
+  pointerSuspended = false;
+  refreshPointerVisibility();
+  setScreen('thank-you');
 }
 
 function playMainMenuAudio() {
@@ -801,11 +1786,23 @@ function startGame() {
   currentLevelIndex = 0;
   gameActive = true;
   powerOffline = false;
+  activeSegmentId = null;
+  shortageCompletionCount = 0;
+  activeShortageCycle = 0;
   collectedFragments = new Map();
   sessionLabel.textContent = randomSessionLabel();
   setScreen('level');
   finalSection.classList.add('hidden');
   finalText.textContent = '';
+  finalPuzzleButton?.setAttribute('disabled', 'true');
+  resetFlashlightState();
+  cancelStalkerEvent();
+  stalkerAvailable = false;
+  stalkerActive = false;
+  stalkerSegmentId = null;
+  finalPuzzleState = null;
+  finalPuzzleOverlay?.classList.add('hidden');
+  stalkerOverlay?.classList.add('hidden');
   pointerPosition.x = pointerTarget.x;
   pointerPosition.y = pointerTarget.y;
   loadCurrentLevel();
@@ -815,6 +1812,10 @@ function startGame() {
 function loadCurrentLevel() {
   const level = levels[currentLevelIndex];
   if (!level) return;
+
+  activeSegmentId = level.segment ?? null;
+  configureStalker(level);
+  resetFlashlightState();
 
   document.documentElement.style.setProperty('--accent', level.theme.accent);
   document.documentElement.style.setProperty('--glow', level.theme.glow);
@@ -1037,7 +2038,14 @@ function revealFinalLore() {
       ? `${stitched} With every vow remembered, pointer.exe understands its burden: to walk beside the user, never ahead, never behind, a witness that outlasts fear.`
       : 'The fragments remain scattered, yet the archive still waits. Return when your pulse is steady.';
   finalSection.classList.remove('hidden');
+  finalPuzzleButton?.removeAttribute('disabled');
   setStatus('The confluence heart steadies. The archive watches with you now.', { duration: 5200, lock: true });
+  const summary = finalText.textContent;
+  setTimeout(() => {
+    if (finalPuzzleOverlay?.classList.contains('hidden')) {
+      startFinalPuzzleSequence({ summary });
+    }
+  }, 1600);
 }
 
 function triggerDeath(node) {
@@ -1240,6 +2248,8 @@ const shortageChallengeFactories = [
   createFirstShortageChallengeSet,
   createSecondShortageChallengeSet,
   createThirdShortageChallengeSet,
+  createFourthShortageChallengeSet,
+  createFifthShortageChallengeSet,
 ];
 
 function getShortageChallengeSetCount() {
@@ -1342,6 +2352,64 @@ function createThirdShortageChallengeSet() {
         'The conduit projects six sigils. Illuminate the <span class="highlight">echoes that refuse to abandon the user</span>.',
       duration: 64,
       setup: (context) => renderEchoWeave(context),
+    },
+  ];
+}
+
+function createFourthShortageChallengeSet() {
+  return [
+    {
+      id: 'bone-rhythm',
+      status: 'Tap the vertebrae in the kiln cadence.',
+      description:
+        'The ossuary remembers a <span class="highlight">four-beat lullaby</span>. Toggle the beats that glow in the artisan\'s memory.',
+      duration: 68,
+      setup: (context) => renderBoneRhythm(context),
+    },
+    {
+      id: 'lantern-weave',
+      status: 'Choose the threads that complete the light braid.',
+      description:
+        'Lantern filaments hum different notes. Select the <span class="highlight">three strands</span> that sum to the archivist\'s pass phrase.',
+      duration: 70,
+      setup: (context) => renderLanternWeave(context),
+    },
+    {
+      id: 'kiln-chord',
+      status: 'Align the kiln vents to the recorded temperatures.',
+      description:
+        'Copper gauges flicker with digits. Slide each <span class="highlight">vent control</span> to match the caretaker log.',
+      duration: 72,
+      setup: (context) => renderKilnChord(context),
+    },
+  ];
+}
+
+function createFifthShortageChallengeSet() {
+  return [
+    {
+      id: 'flashlight-cues',
+      status: 'Replay the anti-hitcher light routine.',
+      description:
+        'The hitcher mimics your hesitation. Recreate the <span class="highlight">pulse pattern</span> the tutor taught you.',
+      duration: 74,
+      setup: (context) => renderFlashlightCues(context),
+    },
+    {
+      id: 'hostage-cipher',
+      status: 'Assign each captive whisper to its true intent.',
+      description:
+        'Three voices offer bargains. Pair each <span class="highlight">voice</span> with the promise that frees rather than binds.',
+      duration: 70,
+      setup: (context) => renderHostageCipher(context),
+    },
+    {
+      id: 'lumen-lock',
+      status: 'Awaken the lumen engine in ascending order.',
+      description:
+        'Dormant bulbs wait for a rising <span class="highlight">brightness sequence</span>. Activate each rune from faintest to brightest.',
+      duration: 72,
+      setup: (context) => renderLumenLock(context),
     },
   ];
 }
@@ -2304,6 +3372,478 @@ function renderEchoWeave(context) {
 
   article.append(submit);
 
+  return { timerControl }; 
+}
+
+function renderBoneRhythm(context) {
+  const { article, timerControl } = context.createShell('ossuary cadence');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Four vertebrae glow in time with a remembered lullaby. Toggle the beats that must ring to calm the kiln spirits.';
+  article.append(prompt);
+
+  const beats = [
+    { id: 'beat-one', label: 'first vertebra', detail: 'Starts the lullaby with a soft tap.', expected: true },
+    { id: 'beat-two', label: 'second vertebra', detail: 'Rests to let bone dust settle.', expected: false },
+    { id: 'beat-three', label: 'third vertebra', detail: 'Strikes sharply to warn the ligaments.', expected: true },
+    { id: 'beat-four', label: 'fourth vertebra', detail: 'Sustains the glow that keeps the hitchers away.', expected: true },
+  ];
+
+  const active = new Map();
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid';
+  article.append(grid);
+
+  beats.forEach((beat) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = beat.id;
+    button.innerHTML = `
+      <span class="choice-title">${beat.label}</span>
+      <span class="choice-detail">${beat.detail}</span>
+    `;
+    button.addEventListener('click', () => {
+      const current = active.get(beat.id) ?? false;
+      const next = !current;
+      active.set(beat.id, next);
+      button.classList.toggle('selected', next);
+      button.setAttribute('aria-pressed', next ? 'true' : 'false');
+      context.updateStatus(next ? `${beat.label} hums.` : `${beat.label} falls quiet.`);
+    });
+    button.setAttribute('aria-pressed', 'false');
+    grid.append(button);
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'commit cadence';
+  submit.addEventListener('click', () => {
+    const incorrect = beats.filter((beat) => {
+      const value = active.get(beat.id) ?? false;
+      return value !== beat.expected;
+    });
+    if (incorrect.length === 0) {
+      context.complete('The lullaby aligns. Bone dust drifts harmlessly.');
+    } else {
+      incorrect.forEach((beat) => {
+        const button = grid.querySelector(`button[data-id="${beat.id}"]`);
+        if (button) {
+          button.classList.add('incorrect');
+          setTimeout(() => button.classList.remove('incorrect'), 520);
+        }
+      });
+      context.updateStatus('The pattern falters. Adjust the glowing beats.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderLanternWeave(context) {
+  const { article, timerControl } = context.createShell('lantern braid');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Choose three light threads whose frequencies sum to the archivist pass. The others will tangle the braid.';
+  article.append(prompt);
+
+  const threads = [
+    { id: 'cerulean', label: 'cerulean filament', value: 4, detail: 'A cool hue that calms restless shelves.' },
+    { id: 'amber', label: 'amber filament', value: 7, detail: 'Keeps the moth scribes warm enough to write.' },
+    { id: 'violet', label: 'violet filament', value: 9, detail: 'Adds a whisper of warning to the glow.' },
+    { id: 'ember', label: 'ember filament', value: 6, detail: 'Stokes courage in the reader chair.' },
+    { id: 'ashen', label: 'ashen filament', value: 3, detail: 'Dampens runaway sparks.' },
+  ];
+
+  const target = 19;
+  const selected = new Set();
+
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid';
+  article.append(grid);
+
+  threads.forEach((thread) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = thread.id;
+    button.innerHTML = `
+      <span class="choice-title">${thread.label}</span>
+      <span class="choice-detail">${thread.detail}</span>
+      <span class="choice-detail">frequency ${thread.value}</span>
+    `;
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      if (selected.has(thread.id)) {
+        selected.delete(thread.id);
+        button.classList.remove('selected');
+        button.setAttribute('aria-pressed', 'false');
+      } else {
+        selected.add(thread.id);
+        button.classList.add('selected');
+        button.setAttribute('aria-pressed', 'true');
+      }
+    });
+    grid.append(button);
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'weave threads';
+  submit.addEventListener('click', () => {
+    if (selected.size !== 3) {
+      context.updateStatus('Exactly three filaments must intertwine.');
+      return;
+    }
+    const sum = Array.from(selected).reduce((total, id) => {
+      const thread = threads.find((entry) => entry.id === id);
+      return total + (thread ? thread.value : 0);
+    }, 0);
+    if (sum === target) {
+      context.complete('The braid hums with balanced light. The shelves glow awake.');
+    } else {
+      context.updateStatus('The braid sputters. Recalculate the glowing threads.');
+      selected.forEach((id) => {
+        const button = grid.querySelector(`button[data-id="${id}"]`);
+        if (button) {
+          button.classList.add('incorrect');
+          setTimeout(() => button.classList.remove('incorrect'), 520);
+        }
+      });
+      selected.clear();
+      grid.querySelectorAll('button').forEach((button) => {
+        button.classList.remove('selected');
+        button.setAttribute('aria-pressed', 'false');
+      });
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderKilnChord(context) {
+  const { article, timerControl } = context.createShell('kiln chord');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Caretaker notes record precise vent temperatures. Slide each gauge to its remembered mark before the kiln complains.';
+  article.append(prompt);
+
+  const log = document.createElement('div');
+  log.className = 'challenge-log';
+  log.innerHTML = `
+    <p><strong>Temperature Ledger</strong></p>
+    <p>• Northern vent: <span class="highlight">428°</span></p>
+    <p>• Eastern vent: <span class="highlight">356°</span></p>
+    <p>• Southern vent: <span class="highlight">312°</span></p>
+  `;
+  article.append(log);
+
+  const vents = [
+    { id: 'north', label: 'northern vent', detail: 'Feeds cooled air across the bone lathe.', target: 428 },
+    { id: 'east', label: 'eastern vent', detail: 'Keeps tendon orbits supple.', target: 356 },
+    { id: 'south', label: 'southern vent', detail: 'Bathes the calcine vault in forgiving heat.', target: 312 },
+  ];
+
+  const sliders = new Map();
+
+  vents.forEach((vent) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'calibration-item';
+    const title = document.createElement('p');
+    title.innerHTML = `<span class="highlight">${vent.label}</span> — ${vent.detail}`;
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = '280';
+    input.max = '480';
+    input.value = String(vent.target - 20);
+    input.dataset.id = vent.id;
+    input.className = 'calibration-slider';
+    const readout = document.createElement('span');
+    readout.className = 'calibration-readout';
+    readout.textContent = `${input.value}°`; 
+
+    input.addEventListener('input', () => {
+      readout.textContent = `${input.value}°`;
+    });
+
+    wrapper.append(title, input, readout);
+    article.append(wrapper);
+    sliders.set(vent.id, { input, wrapper, target: vent.target });
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'seal temperature';
+  submit.addEventListener('click', () => {
+    const mismatched = vents.filter((vent) => {
+      const slider = sliders.get(vent.id);
+      if (!slider) return true;
+      const value = Number(slider.input.value);
+      return value !== vent.target;
+    });
+    if (mismatched.length === 0) {
+      context.complete('The vents sigh in relief. Heat evens out across the kiln.');
+    } else {
+      mismatched.forEach((vent) => {
+        const slider = sliders.get(vent.id);
+        if (slider) {
+          slider.wrapper.classList.add('incorrect');
+          setTimeout(() => slider.wrapper.classList.remove('incorrect'), 520);
+        }
+      });
+      context.updateStatus('Read the caretaker log again. Every gauge must match exactly.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderFlashlightCues(context) {
+  const { article, timerControl } = context.createShell('flashlight routine');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Repeat the anti-hitcher pattern taught in the observatory: three quick pulses, one sweeping arc, then a held beam.';
+  article.append(prompt);
+
+  const expected = ['short', 'short', 'short', 'long', 'hold'];
+  const sequence = [];
+
+  const status = document.createElement('p');
+  status.className = 'challenge-log';
+  status.textContent = 'Awaiting first pulse.';
+  article.append(status);
+
+  const buttons = [
+    { id: 'short', label: 'short flash', detail: 'A heartbeat of light.' },
+    { id: 'long', label: 'long sweep', detail: 'Arc the beam across the walls.' },
+    { id: 'hold', label: 'steady hold', detail: 'Fix the beam and refuse to blink.' },
+  ];
+
+  const controlRow = document.createElement('div');
+  controlRow.className = 'choice-grid';
+  article.append(controlRow);
+
+  buttons.forEach((pulse) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = pulse.id;
+    button.innerHTML = `
+      <span class="choice-title">${pulse.label}</span>
+      <span class="choice-detail">${pulse.detail}</span>
+    `;
+    button.addEventListener('click', () => {
+      sequence.push(pulse.id);
+      status.textContent = `Pulse ${sequence.length}/${expected.length} recorded.`;
+      if (!expected.slice(0, sequence.length).every((value, index) => value === sequence[index])) {
+        status.textContent = 'Pattern slipped. Resetting sequence.';
+        sequence.length = 0;
+        context.updateStatus('The hitcher smirks. Try the cadence again.');
+        controlRow.querySelectorAll('.choice-button').forEach((btn) => {
+          btn.classList.add('incorrect');
+          setTimeout(() => btn.classList.remove('incorrect'), 420);
+        });
+        return;
+      }
+      if (sequence.length === expected.length) {
+        context.complete('The hitcher recoils. The corridor cheers silently.');
+      }
+    });
+    controlRow.append(button);
+  });
+
+  const reset = document.createElement('button');
+  reset.type = 'button';
+  reset.className = 'glitch-button ghost';
+  reset.textContent = 'reset pattern';
+  reset.addEventListener('click', () => {
+    sequence.length = 0;
+    status.textContent = 'Sequence cleared. Awaiting first pulse.';
+  });
+  article.append(reset);
+
+  return { timerControl };
+}
+
+function renderHostageCipher(context) {
+  const { article, timerControl } = context.createShell('hostage cipher');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Three captive whispers speak at once. Assign each the promise that frees instead of binds.';
+  article.append(prompt);
+
+  const voices = [
+    {
+      id: 'chain',
+      clue: '"Let me coil around your wrist and I will guide you forever."',
+      answer: 'refusal',
+    },
+    {
+      id: 'mirror',
+      clue: '"Trade your reflection for a map of exits."',
+      answer: 'counter-oath',
+    },
+    {
+      id: 'echo',
+      clue: '"Carry my song and I will follow your light."',
+      answer: 'escort',
+    },
+  ];
+
+  const options = [
+    { value: 'refusal', label: 'Refusal – deny the bargain and keep autonomy.' },
+    { value: 'counter-oath', label: 'Counter-oath – rewrite the promise on your terms.' },
+    { value: 'escort', label: 'Escort – carry the whisper as a companion, not a captor.' },
+  ];
+
+  const selects = new Map();
+
+  voices.forEach((voice) => {
+    const block = document.createElement('div');
+    block.className = 'challenge-log';
+    block.innerHTML = `<p>${voice.clue}</p>`;
+
+    const select = document.createElement('select');
+    select.className = 'challenge-input';
+    select.dataset.id = voice.id;
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'choose promise';
+    select.append(placeholder);
+    options.forEach((option) => {
+      const opt = document.createElement('option');
+      opt.value = option.value;
+      opt.textContent = option.label;
+      select.append(opt);
+    });
+    block.append(select);
+    article.append(block);
+    selects.set(voice.id, select);
+  });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'glitch-button primary';
+  submit.textContent = 'translate whispers';
+  submit.addEventListener('click', () => {
+    let incomplete = false;
+    const incorrect = [];
+    selects.forEach((select, id) => {
+      if (!select.value) {
+        incomplete = true;
+      } else {
+        const voice = voices.find((entry) => entry.id === id);
+        if (voice && voice.answer !== select.value) {
+          incorrect.push(select);
+        }
+      }
+    });
+    if (incomplete) {
+      context.updateStatus('Every whisper must receive a promise. None may be left empty.');
+      return;
+    }
+    if (incorrect.length === 0) {
+      context.complete('The whispers nod, freed to follow your light instead of trapping it.');
+    } else {
+      incorrect.forEach((select) => {
+        select.classList.add('fault');
+        setTimeout(() => select.classList.remove('fault'), 520);
+      });
+      context.updateStatus('One promise still binds. Reconsider your assignments.');
+    }
+  });
+
+  article.append(submit);
+
+  return { timerControl };
+}
+
+function renderLumenLock(context) {
+  const { article, timerControl } = context.createShell('lumen lock');
+  context.container.append(article);
+
+  const prompt = document.createElement('p');
+  prompt.className = 'challenge-prompt';
+  prompt.innerHTML =
+    'Dormant bulbs line the engine. Activate them from faintest to brightest so the heart awakens gently.';
+  article.append(prompt);
+
+  const bulbs = [
+    { id: 'gloam', label: 'gloam spark', detail: 'Barely visible until coaxed.', intensity: 1 },
+    { id: 'dawn', label: 'dawn pulse', detail: 'Warms slowly when encouraged.', intensity: 3 },
+    { id: 'noon', label: 'noon flare', detail: 'Blazes with confidence.', intensity: 5 },
+    { id: 'zenith', label: 'zenith beam', detail: 'A spear of focused brilliance.', intensity: 7 },
+  ];
+
+  const expected = bulbs
+    .slice()
+    .sort((a, b) => a.intensity - b.intensity)
+    .map((bulb) => bulb.id);
+  let progress = 0;
+
+  const grid = document.createElement('div');
+  grid.className = 'choice-grid';
+  article.append(grid);
+
+  const buttons = bulbs.map((bulb) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.dataset.id = bulb.id;
+    button.innerHTML = `
+      <span class="choice-title">${bulb.label}</span>
+      <span class="choice-detail">${bulb.detail}</span>
+      <span class="choice-detail">lumen ${bulb.intensity}</span>
+    `;
+    button.addEventListener('click', () => {
+      const expectedId = expected[progress];
+      if (bulb.id === expectedId) {
+        button.classList.add('correct-step');
+        button.disabled = true;
+        progress += 1;
+        context.updateStatus(`Rune ${progress}/${expected.length} awakened.`);
+        if (progress === expected.length) {
+          context.complete('The lumen engine spins up, bathing the amphitheatre in gold.');
+        }
+      } else {
+        context.updateStatus('Brightness out of order. The engine dims.');
+        progress = 0;
+        buttons.forEach((btn) => {
+          btn.classList.remove('correct-step');
+          btn.disabled = false;
+          btn.classList.add('incorrect');
+          setTimeout(() => btn.classList.remove('incorrect'), 520);
+        });
+      }
+    });
+    grid.append(button);
+    return button;
+  });
+
   return { timerControl };
 }
 
@@ -2416,6 +3956,32 @@ closeSettingsButton?.addEventListener('click', () => {
 
 applySettingsButton?.addEventListener('click', () => {
   closePreferences();
+});
+
+flashlightButton?.addEventListener('click', () => {
+  useFlashlight();
+});
+
+flashNowButton?.addEventListener('click', () => {
+  useFlashlight({ silent: true });
+});
+
+abortFinalPuzzleButton?.addEventListener('click', () => {
+  abortFinalPuzzle();
+});
+
+finalPuzzleButton?.addEventListener('click', () => {
+  const summary = finalText.textContent;
+  startFinalPuzzleSequence({ summary });
+});
+
+restartRunButton?.addEventListener('click', () => {
+  finalSection.classList.add('hidden');
+  finalText.textContent = '';
+  finalPuzzleButton?.setAttribute('disabled', 'true');
+  pointerSuspended = false;
+  refreshPointerVisibility();
+  setScreen('intro');
 });
 
 pointerSwitch?.addEventListener('change', (event) => {
