@@ -92,6 +92,14 @@
       <span class="pointer-core"></span>
     </div>
 
+    <div id="flicker-overlay" class="environment-overlay flicker hidden" aria-hidden="true"></div>
+    <div id="eyes-overlay" class="environment-overlay eyes hidden" aria-hidden="true"></div>
+    <div id="entity-dim-overlay" class="environment-overlay entity hidden" aria-hidden="true"></div>
+    <div id="entity-apparition" class="entity-apparition hidden" aria-hidden="true">
+      <span class="entity-shell"></span>
+      <span class="entity-core"></span>
+    </div>
+
     <div class="app-shell" data-screen="intro">
       <header class="top-bar">
         <div class="program-title">
@@ -106,6 +114,7 @@
         </div>
         <button class="glitch-button" data-action="flashlight" type="button">
           flashlight
+          <span class="flashlight-hint">press F</span>
           <span id="flashlight-indicator" class="flashlight-indicator">ready</span>
         </button>
         <button class="glitch-button ghost" data-action="preferences" type="button">
@@ -374,12 +383,51 @@
       </div>
     </div>
 
+    <div id="tutorial-overlay" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-content tutorial">
+        <header class="modal-header">
+          <div>
+            <h2>session orientation</h2>
+            <p>learn how the archive tests your focus.</p>
+          </div>
+        </header>
+        <div class="modal-body tutorial-body">
+          <ol class="tutorial-list">
+            <li>
+              <strong>Flashlight control</strong> — press <kbd>F</kbd> to toggle the beam. Keeping it on for more than five seconds
+              will burn the circuit, freezing your cursor for ten seconds and disabling the light for forty.
+            </li>
+            <li>
+              <strong>Power bleed events</strong> — if the lights flicker, hold <kbd>H</kbd> to shut your eyes. Keep them closed for
+              five seconds to outlast the surge. Ignore it for eight seconds and the archive will terminate the run.
+            </li>
+            <li>
+              <strong>Intrusive echoes</strong> — dimming air and a grey pointer mean a hostile entity is near. Bathe it in your
+              flashlight for two seconds to banish it before ten seconds pass.
+            </li>
+          </ol>
+          <p class="tutorial-tip">You can call the tutorial again from the session menu after you restart.</p>
+        </div>
+        <footer class="modal-footer">
+          <button class="glitch-button primary" id="tutorial-dismiss" type="button">begin trace</button>
+        </footer>
+      </div>
+    </div>
+
     <div id="version-counter" class="version-counter" aria-hidden="true">v0.3.988</div>
 
     <audio id="intro-audio" src="files/introVoice.mp3" preload="auto"></audio>
     <audio id="main-menu-audio" src="files/mainMenuOST.mp3" loop preload="auto"></audio>
     <audio id="shortage-audio" src="files/shortage.mp3" preload="auto" loop></audio>
     <audio id="shortage-ost" src="files/shortageOST.mp3" preload="auto" loop></audio>
+    <audio id="lights-out-audio" src="files/lightsOutOST.mp3" preload="auto" loop></audio>
+    <audio id="flicker-audio" src="files/flickering.mp3" preload="auto"></audio>
+    <audio id="entity-spawn-audio" src="files/entitySpawn.mp3" preload="auto"></audio>
+    <audio id="entity-kill-audio" src="files/entityKill.mp3" preload="auto"></audio>
+    <audio id="flash-on-audio" src="files/flashOn.mp3" preload="auto"></audio>
+    <audio id="flash-off-audio" src="files/flashOff.mp3" preload="auto"></audio>
+    <audio id="flash-broken-audio" src="files/flashBroken.mp3" preload="auto"></audio>
+    <audio id="flash-repaired-audio" src="files/flashRepaired.mp3" preload="auto"></audio>
 
     <script src="script.js"></script>
   </body>
