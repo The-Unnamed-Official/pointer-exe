@@ -904,7 +904,7 @@ body.static-muted .crt-overlay {
 .map-area {
   position: relative;
   flex: 1;
-  min-height: 280px;
+  min-height: 125vh;
   border-radius: 0.85rem;
   background:
     radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.05), transparent 55%),
