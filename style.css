@@ -322,7 +322,7 @@ body.intro-active {
     opacity: 1;
   }
   5% {
-    transform: rotateX(30deg) translate3d(0, 240vh, 0);
+    transform: rotateX(30deg) translate3d(0, calc(var(--intro-vh, 1vh) * 240), 0);
   }
   6% {
     transform: rotateX(30deg) translate3d(0, 230vh, 0);
