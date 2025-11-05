@@ -112,13 +112,6 @@ const levels = [
       'Floor lights sketch three arrows—atrium, atelier, gauntlet. The third pulses impatiently whenever you hesitate.',
       'Ceiling speakers whisper: steady the hum, coax the relays, hide the light. Your breathing is being graded.',
     ],
-    dynamicShortage: {
-      track: 'keys',
-      minProgress: 1,
-      maxProgress: 3,
-      nodeId: 'maintenance-gate',
-      prelude: 'Warning glyphs skate across the tiles; the relays brace for a brownout.',
-    },
     nodes: [
       {
         id: 'reception-well',
@@ -222,7 +215,7 @@ const levels = [
           heading: 'stalled conduit',
           entity: 'maintenance grid',
           text: 'The console hums with atelier and gauntlet relays. Teach it how you plan to reroute power when the grid dips.',
-          effect: 'shortage',
+          effect: 'progress',
           acknowledgeLabel: 'prime relays',
           choices: [
             {
@@ -354,7 +347,8 @@ const levels = [
           heading: 'sputtering core',
           entity: 'power sink',
           text: 'You hear circuits choking on their own coolant. The floor shakes as the level tries to reroute power through your hand.',
-          effect: 'shortage',
+          effect: 'progress',
+          afterStatus: 'Stabilized coolant pulses through the stacks, brightening the submerged corridors.',
         },
         fragment: {
           id: 'fragment-zeta',
@@ -458,7 +452,8 @@ const levels = [
           heading: 'devouring static',
           entity: 'hungry conduit',
           text: 'The spire swallows light until the chamber drops into darkness. Circuits plead through your fingertips for renewal.',
-          effect: 'shortage',
+          effect: 'progress',
+          afterStatus: 'The spire releases stored light, sending a steady pulse through the heart.',
         },
         fragment: {
           id: 'fragment-kappa',
@@ -4572,12 +4567,12 @@ function createThirdShortageChallengeSet() {
 function createFourthShortageChallengeSet() {
   return [
     {
-      id: 'bone-rhythm',
-      status: 'Tap the vertebrae in the kiln cadence.',
+      id: 'spire-calibration',
+      status: 'Tune each spire coil within tolerance.',
       description:
-        'The ossuary remembers a <span class="highlight">four-beat lullaby</span>. Toggle the beats that glow in the artisan\'s memory.',
-      duration: 68,
-      setup: (context) => renderBoneRhythm(context),
+        'The heart stutters. Align the <span class="highlight">phase sliders</span> to coax a steady pulse.',
+      duration: 72,
+      setup: (context) => renderSpireCalibration(context),
     },
     {
       id: 'lantern-weave',
@@ -4601,12 +4596,12 @@ function createFourthShortageChallengeSet() {
 function createFifthShortageChallengeSet() {
   return [
     {
-      id: 'flashlight-cues',
-      status: 'Replay the anti-hitcher light routine.',
+      id: 'spire-calibration',
+      status: 'Tune each spire coil within tolerance.',
       description:
-        'The hitcher mimics your hesitation. Recreate the <span class="highlight">pulse pattern</span> the tutor taught you.',
-      duration: 74,
-      setup: (context) => renderFlashlightCues(context),
+        'The heart stutters. Align the <span class="highlight">phase sliders</span> to coax a steady pulse.',
+      duration: 72,
+      setup: (context) => renderSpireCalibration(context),
     },
     {
       id: 'hostage-cipher',
@@ -4646,14 +4641,10 @@ const shortageHelpMessages = {
     'Record the vows in sworn order: Amon first, Lira second, Soma third, and pointer.exe last.',
   'echo-weave':
     'Leave the listen, witness, and anchor runes glowing. Extinguish harvest, sever, and drain.',
-  'bone-rhythm':
-    'The lullaby beats on vertebrae one, three, and four. Keep the second vertebra silent.',
   'lantern-weave':
     'Choose the filaments whose frequencies total nineteen: amber (7), violet (9), and ashen (3).',
   'kiln-chord':
     'Set the vents to their ledger marks: north 428°, east 356°, and south 312°.',
-  'flashlight-cues':
-    'Perform the anti-hitcher pattern—three quick pulses, one long sweep, then hold the beam.',
   'hostage-cipher':
     'Assign refusal to the chain voice, counter-oath to the mirror, and escort to the echo.',
   'lumen-lock':
